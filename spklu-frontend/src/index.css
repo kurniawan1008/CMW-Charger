@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-surface font-sans text-ink-900;
+  }
+  ::selection {
+    @apply bg-cmw-100 text-cmw-700;
+  }
+  :focus-visible {
+    outline: 2px solid #1d66e0;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer utilities {
+  /* Angka telemetry: tabular agar tidak "goyang" saat berubah */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ===== Motif khas: arus listrik mengalir (dash flow) ===== */
+@keyframes currentFlow {
+  to { stroke-dashoffset: -24; }
+}
+.current-flow {
+  stroke-dasharray: 6 6;
+  animation: currentFlow 0.9s linear infinite;
+}
+
+/* ===== Sistem motion ===== */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes auroraDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(4%, -3%) scale(1.06); }
+  66% { transform: translate(-3%, 3%) scale(0.97); }
+}
+@keyframes ringBreathe {
+  0%, 100% { opacity: 0.5; transform: scale(0.97); }
+  50% { opacity: 0.9; transform: scale(1.03); }
+}
+@keyframes sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(200%); }
+}
+
+.rise-in { animation: riseIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.pulse-dot { animation: pulseDot 1.4s ease-in-out infinite; }
+
+/* Aurora latar (teknik mesh-gradient, versi light) */
+.aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  pointer-events: none;
+  animation: auroraDrift 12s ease-in-out infinite;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: #edf2f8;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: sweep 1.4s ease infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
