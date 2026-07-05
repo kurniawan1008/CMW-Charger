@@ -45,7 +45,7 @@ export default function AuthPage() {
       <div className="rise-in relative w-full max-w-[420px]">
         {/* Brand */}
         <div className="mb-8 text-center">
-          <div className="mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-grad-deep shadow-glow">
+          <div className="soft-float shine mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-grad-deep shadow-glow">
             <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="currentColor">
               <polygon points="13,2 4,14 11,14 9,22 20,9 12,9" />
             </svg>
@@ -96,7 +96,7 @@ export default function AuthPage() {
                 {error}
               </p>
             )}
-            <Button type="submit" variant="energy" loading={busy} className="mt-1 w-full">
+            <Button type="submit" variant="energy" loading={busy} className="shine mt-1 w-full">
               {mode === 'login' ? 'Masuk' : 'Buat akun'}
             </Button>
           </form>

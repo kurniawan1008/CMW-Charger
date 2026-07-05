@@ -64,8 +64,81 @@
   to { transform: translateX(200%); }
 }
 
+/* Petir naik dari dalam ring saat charging */
+@keyframes boltRise {
+  0% { transform: translateY(16px) scale(0.6); opacity: 0; }
+  25% { opacity: 0.95; }
+  100% { transform: translateY(-40px) scale(1.05); opacity: 0; }
+}
+/* Gelombang energi memancar dari ikon charger */
+@keyframes waveExpand {
+  0% { transform: scale(0.65); opacity: 0.5; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+/* Confetti perayaan sesi selesai */
+@keyframes confettiPop {
+  0% { transform: translate(0, 0) scale(0) rotate(0deg); opacity: 0; }
+  18% { opacity: 1; transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)) scale(1) rotate(90deg); }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0.5) rotate(300deg); opacity: 0; }
+}
+/* Kilau menyapu tombol/kartu premium */
+@keyframes shineSweep {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  100% { transform: translateX(240%) skewX(-18deg); }
+}
+/* Apung lembut untuk ikon/logo */
+@keyframes softFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+/* Napas angka utama saat live */
+@keyframes gaugeSquish {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+/* Pop masuk (ikon sukses, nav aktif) */
+@keyframes popIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+
 .rise-in { animation: riseIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .pulse-dot { animation: pulseDot 1.4s ease-in-out infinite; }
+.soft-float { animation: softFloat 3.2s ease-in-out infinite; }
+.pop-in { animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.gauge-squish { animation: gaugeSquish 2.4s ease-in-out infinite; }
+.hover-wiggle:hover > .wiggle-target { animation: wiggle 0.4s ease-in-out; }
+
+/* Kilau premium: elemen dengan .shine mendapat sapuan cahaya berkala */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; width: 45%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: shineSweep 3.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Kartu interaktif: angkat + glow saat hover, squish saat ditekan */
+.card-lift {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 2px 4px rgba(10, 26, 50, 0.06), 0 18px 44px rgba(29, 102, 224, 0.16);
+}
+.card-lift:active {
+  transform: translateY(-1px) scale(0.98);
+}
 
 /* Aurora latar (teknik mesh-gradient, versi light) */
 .aurora {

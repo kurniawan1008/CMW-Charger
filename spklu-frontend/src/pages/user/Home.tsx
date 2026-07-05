@@ -27,6 +27,9 @@ export default function Home() {
       {/* Kartu saldo — hero pribadi */}
       <section className="rise-in relative overflow-hidden rounded-card bg-grad-deep p-6 text-white shadow-raise">
         <div className="aurora right-[-30%] top-[-60%] h-64 w-64" style={{ background: 'rgba(56,189,248,0.35)' }} />
+        <div className="soft-float absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur">
+          <Zap size={19} className="fill-sky-400 text-sky-400" />
+        </div>
         <p className="text-[13px] font-semibold text-white/70">Halo, {firstName}</p>
         <p className="mt-3 text-[12px] font-bold uppercase tracking-wider text-white/60">Saldo aktif</p>
         <p className="font-display text-[34px] font-extrabold leading-tight">
@@ -35,7 +38,7 @@ export default function Home() {
         <div className="mt-5 flex gap-2.5">
           <Link
             to="/charge"
-            className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-control bg-white px-4 py-3 text-sm font-extrabold text-cmw-700 transition-transform active:scale-[0.97]"
+            className="shine inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-control bg-white px-4 py-3 text-sm font-extrabold text-cmw-700 transition-all hover:-translate-y-0.5 hover:shadow-raise active:scale-[0.97]"
           >
             <Zap size={17} className="fill-cmw-600 text-cmw-600" /> Mulai Charging
           </Link>
@@ -59,8 +62,8 @@ export default function Home() {
         <div className="flex flex-col gap-2.5">
           {locations.slice(0, 3).map((loc) => (
             <Link key={loc.id} to="/charge" state={{ locationId: loc.id }}>
-              <Card className="flex cursor-pointer items-center gap-3.5 transition-all hover:-translate-y-0.5 hover:shadow-raise">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
+              <Card className="hover-wiggle card-lift flex cursor-pointer items-center gap-3.5">
+                <div className="wiggle-target flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
                   <MapPin size={20} />
                 </div>
                 <div className="min-w-0 flex-1">

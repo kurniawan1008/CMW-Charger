@@ -12,6 +12,7 @@ import { useTopic } from '../../lib/ws';
 import { rupiah, duration } from '../../lib/format';
 import { Button, Card, Badge } from '../../components/ui';
 import { CountUp, CurrentLine, FlowLink, ProgressRing, Sparkline } from '../../components/energy';
+import { BoltRain, Confetti } from '../../components/motion';
 import type { Charger, Location, MotorProfile, SessionFinal, SessionTick } from '../../lib/types';
 
 const STEPS = ['Lokasi', 'Charger', 'Motor', 'Jumlah', 'Konfirmasi'];
@@ -117,10 +118,12 @@ export default function Wizard() {
     return mode === 'idr' ? tick.cost / estCost : tick.energy / estKwh;
   }, [tick, mode, estCost, estKwh]);
 
+  // Variants statis (tanpa custom function) — varian ber-custom membuat exit
+  // AnimatePresence macet; arah tetap terasa dari offset enter/exit.
   const variants = {
-    enter: (d: number) => ({ opacity: 0, x: 28 * d }),
+    enter: { opacity: 0, x: 28 * dir },
     center: { opacity: 1, x: 0 },
-    exit: (d: number) => ({ opacity: 0, x: -28 * d }),
+    exit: { opacity: 0, x: -20 * dir },
   };
 
   return (
@@ -165,10 +168,9 @@ export default function Wizard() {
         </div>
       )}
 
-      <AnimatePresence mode="wait" custom={dir}>
+      <AnimatePresence mode="wait">
         <motion.div
           key={step}
-          custom={dir}
           variants={variants}
           initial="enter"
           animate="center"
@@ -187,8 +189,8 @@ export default function Wizard() {
                   className="rise-in cursor-pointer text-left disabled:opacity-50"
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
-                  <Card className="flex items-center gap-3.5 transition-all hover:-translate-y-0.5 hover:shadow-raise">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
+                  <Card className="hover-wiggle card-lift flex items-center gap-3.5">
+                    <div className="wiggle-target flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
                       <MapPin size={20} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -215,8 +217,8 @@ export default function Wizard() {
                   className="rise-in cursor-pointer disabled:cursor-not-allowed"
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
-                  <Card className={`flex flex-col items-center gap-2 py-6 transition-all ${ch.available ? 'hover:-translate-y-0.5 hover:shadow-glow' : 'opacity-55'}`}>
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${ch.available ? 'bg-grad-energy text-white shadow-glow-energy' : 'bg-surface-sunken text-ink-300'}`}>
+                  <Card className={`hover-wiggle flex flex-col items-center gap-2 py-6 ${ch.available ? 'card-lift' : 'opacity-55'}`}>
+                    <div className={`wiggle-target flex h-12 w-12 items-center justify-center rounded-2xl ${ch.available ? 'shine soft-float bg-grad-energy text-white shadow-glow-energy' : 'bg-surface-sunken text-ink-300'}`}>
                       <Zap size={22} />
                     </div>
                     <p className="font-display text-sm font-bold">{ch.label}</p>
@@ -244,8 +246,8 @@ export default function Wizard() {
                   className="rise-in cursor-pointer text-left"
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
-                  <Card className={`flex items-center gap-3.5 transition-all hover:-translate-y-0.5 hover:shadow-raise ${selMotor?.id === m.id ? 'ring-2 ring-cmw-500' : ''}`}>
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-500">
+                  <Card className={`hover-wiggle card-lift flex items-center gap-3.5 ${selMotor?.id === m.id ? 'ring-2 ring-cmw-500' : ''}`}>
+                    <div className="wiggle-target flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-500">
                       <Bike size={20} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -352,15 +354,18 @@ export default function Wizard() {
                 {selCharger?.label} · {selLocation?.name}
               </p>
 
-              <ProgressRing progress={progress} charging>
-                <p className="font-mono text-[13px] font-bold tabular text-sky-500">
-                  {Math.round(Math.min(1, progress) * 100)}%
-                </p>
-                <p className="font-display text-[38px] font-extrabold leading-tight">
-                  <CountUp value={tick?.energy ?? 0} decimals={3} />
-                </p>
-                <p className="text-[13px] font-bold text-ink-400">kWh</p>
-              </ProgressRing>
+              <div className="relative">
+                <ProgressRing progress={progress} charging>
+                  <p className="font-mono text-[13px] font-bold tabular text-sky-500">
+                    {Math.round(Math.min(1, progress) * 100)}%
+                  </p>
+                  <p className="font-display text-[38px] font-extrabold leading-tight">
+                    <CountUp value={tick?.energy ?? 0} decimals={3} />
+                  </p>
+                  <p className="text-[13px] font-bold text-ink-400">kWh</p>
+                </ProgressRing>
+                <BoltRain />
+              </div>
 
               <FlowLink active />
 
@@ -378,12 +383,12 @@ export default function Wizard() {
                 {[
                   ['Tegangan', tick ? `${tick.voltage.toFixed(1)} V` : '—'],
                   ['Arus', tick ? `${tick.current.toFixed(1)} A` : '—'],
-                  ['Biaya berjalan', tick ? rupiah(tick.cost) : '—'],
+                  ['Biaya', tick ? rupiah(tick.cost) : '—'],
                   ['Durasi', tick ? duration(tick.elapsed) : '—'],
                 ].map(([k, v]) => (
                   <div key={k} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-card">
                     <p className="text-[10.5px] font-bold uppercase tracking-wide text-ink-400">{k}</p>
-                    <p className="font-mono text-[13.5px] font-bold tabular">{v}</p>
+                    <p className="whitespace-nowrap font-mono text-[13.5px] font-bold tabular">{v}</p>
                   </div>
                 ))}
               </div>
@@ -396,8 +401,9 @@ export default function Wizard() {
 
           {/* ===== 7. Ringkasan ===== */}
           {step === 7 && finalResult && (
-            <div className="flex flex-col items-center gap-5 pt-6 text-center">
-              <div className={`flex h-20 w-20 items-center justify-center rounded-full ${finalResult.status === 'FAULT' ? 'bg-danger-50 text-danger-500' : 'bg-energy-100 text-energy-600'}`}>
+            <div className="relative flex flex-col items-center gap-5 pt-6 text-center">
+              {finalResult.status !== 'FAULT' && <Confetti />}
+              <div className={`pop-in flex h-20 w-20 items-center justify-center rounded-full ${finalResult.status === 'FAULT' ? 'bg-danger-50 text-danger-500' : 'bg-energy-100 text-energy-600'}`}>
                 {finalResult.status === 'FAULT'
                   ? <TriangleAlert size={36} />
                   : finalResult.status === 'COMPLETED'

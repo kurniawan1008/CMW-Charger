@@ -17,7 +17,8 @@
       "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SHOW TABLES; SELECT k,v FROM settings; SELECT id,brand,model,fw_slot,vset_v,iset_a FROM motor_profiles;\")",
       "Bash(/c/xampp/mysql/bin/mysql.exe -u root -e \"SHOW DATABASES;\")",
       "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SHOW TABLES;\")",
-      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SELECT COUNT\\(*\\) AS users FROM users; SELECT COUNT\\(*\\) AS sessions FROM sessions;\")"
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SELECT COUNT\\(*\\) AS users FROM users; SELECT COUNT\\(*\\) AS sessions FROM sessions;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"UPDATE users SET balance=100000 WHERE id=7; SELECT balance FROM users WHERE id=7;\")"
     ]
   }
 }

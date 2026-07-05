@@ -1,5 +1,6 @@
 // Motif khas "Arus" — garis arus listrik mengalir + instrumen ring + count-up.
 import { useEffect, useRef, useState } from 'react';
+import { PulseWave } from './motion';
 
 // ===== CountUp: angka naik mulus (tabular, tidak goyang) =====
 export function CountUp({
@@ -98,7 +99,9 @@ export function ProgressRing({
           </linearGradient>
         </defs>
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+      <div className={`absolute inset-0 flex flex-col items-center justify-center ${charging ? 'gauge-squish' : ''}`}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -107,7 +110,8 @@ export function ProgressRing({
 export function FlowLink({ active }: { active: boolean }) {
   return (
     <div className="flex items-center justify-center gap-3" aria-hidden>
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-grad-deep shadow-glow">
+      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-grad-deep shadow-glow">
+        {active && <PulseWave color="rgba(56,189,248,0.4)" />}
         <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" fill="currentColor">
           <polygon points="13,2 4,14 11,14 9,22 20,9 12,9" />
         </svg>
