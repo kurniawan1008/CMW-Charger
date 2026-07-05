@@ -14,6 +14,8 @@ export interface Location {
   name: string;
   address: string;
   city: string;
+  lat: number;
+  lng: number;
   status: 'ONLINE' | 'BUSY' | 'OFFLINE';
   power_kw: number;
   type: string;

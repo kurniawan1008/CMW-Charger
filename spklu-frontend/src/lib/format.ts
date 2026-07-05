@@ -12,6 +12,10 @@ export const duration = (sec: number) => {
     : `${m}:${String(s).padStart(2, '0')}`;
 };
 
+// Tautan Google Maps ke titik koordinat SPKLU.
+export const gmapsUrl = (lat: number, lng: number) =>
+  `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
 export const dateTime = (iso: string) =>
   new Date(iso).toLocaleString('id-ID', {
     day: 'numeric', month: 'short', year: 'numeric',

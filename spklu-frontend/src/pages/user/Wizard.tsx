@@ -4,12 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation as useRouteLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft, MapPin, Bike, CircleCheck, Zap, X, TriangleAlert, PartyPopper,
+  ArrowLeft, MapPin, Bike, CircleCheck, Zap, X, TriangleAlert, PartyPopper, ExternalLink,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useTopic } from '../../lib/ws';
-import { rupiah, duration } from '../../lib/format';
+import { rupiah, duration, gmapsUrl } from '../../lib/format';
 import { Button, Card, Badge } from '../../components/ui';
 import { CountUp, CurrentLine, FlowLink, ProgressRing, Sparkline } from '../../components/energy';
 import { BoltRain, Confetti } from '../../components/motion';
@@ -182,11 +182,15 @@ export default function Wizard() {
           {step === 1 && (
             <div className="flex flex-col gap-2.5">
               {locations.map((loc, i) => (
-                <button
+                // div ber-role button (bukan <button>) karena berisi <a> ke Maps —
+                // elemen interaktif tidak boleh bersarang.
+                <div
                   key={loc.id}
-                  disabled={loc.status === 'OFFLINE'}
-                  onClick={() => { setSelLocation(loc); setSelCharger(null); go(2); }}
-                  className="rise-in cursor-pointer text-left disabled:opacity-50"
+                  role="button"
+                  tabIndex={loc.status === 'OFFLINE' ? -1 : 0}
+                  onClick={() => { if (loc.status !== 'OFFLINE') { setSelLocation(loc); setSelCharger(null); go(2); } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && loc.status !== 'OFFLINE') { setSelLocation(loc); setSelCharger(null); go(2); } }}
+                  className={`rise-in text-left ${loc.status === 'OFFLINE' ? 'opacity-50' : 'cursor-pointer'}`}
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
                   <Card className="hover-wiggle card-lift flex items-center gap-3.5">
@@ -196,12 +200,21 @@ export default function Wizard() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold">{loc.name}</p>
                       <p className="truncate text-xs text-ink-400">{loc.address}</p>
+                      <a
+                        href={gmapsUrl(loc.lat, loc.lng)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-cmw-50 px-2.5 py-1 text-[11px] font-bold text-cmw-600 transition-colors hover:bg-cmw-100"
+                      >
+                        <ExternalLink size={11} /> Lihat di Maps
+                      </a>
                     </div>
                     {loc.available_chargers > 0
                       ? <Badge tone="energy" pulse>{loc.available_chargers} siap</Badge>
                       : <Badge tone="neutral">Penuh</Badge>}
                   </Card>
-                </button>
+                </div>
               ))}
             </div>
           )}

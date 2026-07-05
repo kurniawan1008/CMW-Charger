@@ -18,7 +18,10 @@
       "Bash(/c/xampp/mysql/bin/mysql.exe -u root -e \"SHOW DATABASES;\")",
       "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SHOW TABLES;\")",
       "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SELECT COUNT\\(*\\) AS users FROM users; SELECT COUNT\\(*\\) AS sessions FROM sessions;\")",
-      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"UPDATE users SET balance=100000 WHERE id=7; SELECT balance FROM users WHERE id=7;\")"
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"UPDATE users SET balance=100000 WHERE id=7; SELECT balance FROM users WHERE id=7;\")",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'FlowLink: charger biru muda, motor hijau tua — bobot warna dibalik, tone senada *)",
+      "Bash(npx tsc *)"
     ]
   }
 }

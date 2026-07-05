@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Zap, MapPin, ChevronRight, PlugZap } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Zap, MapPin, ChevronRight, PlugZap, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
-import { rupiah, dateTime } from '../../lib/format';
+import { rupiah, dateTime, gmapsUrl } from '../../lib/format';
 import { Card, Badge, Empty } from '../../components/ui';
 import { CountUp } from '../../components/energy';
 import type { Location, Paged, SessionRecord } from '../../lib/types';
 
 export default function Home() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [locations, setLocations] = useState<Location[]>([]);
   const [recent, setRecent] = useState<SessionRecord[]>([]);
@@ -61,14 +62,32 @@ export default function Home() {
         </div>
         <div className="flex flex-col gap-2.5">
           {locations.slice(0, 3).map((loc) => (
-            <Link key={loc.id} to="/charge" state={{ locationId: loc.id }}>
-              <Card className="hover-wiggle card-lift flex cursor-pointer items-center gap-3.5">
+            // div ber-role button (bukan <Link>) karena berisi <a> ke Maps —
+            // elemen interaktif tidak boleh bersarang.
+            <div
+              key={loc.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/charge', { state: { locationId: loc.id } })}
+              onKeyDown={(e) => { if (e.key === 'Enter') navigate('/charge', { state: { locationId: loc.id } }); }}
+              className="cursor-pointer"
+            >
+              <Card className="hover-wiggle card-lift flex items-center gap-3.5">
                 <div className="wiggle-target flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
                   <MapPin size={20} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{loc.name}</p>
                   <p className="truncate text-xs text-ink-400">{loc.city} · {loc.hours}</p>
+                  <a
+                    href={gmapsUrl(loc.lat, loc.lng)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-cmw-50 px-2.5 py-1 text-[11px] font-bold text-cmw-600 transition-colors hover:bg-cmw-100"
+                  >
+                    <ExternalLink size={11} /> Lihat di Maps
+                  </a>
                 </div>
                 {loc.available_chargers > 0 ? (
                   <Badge tone="energy" pulse>{loc.available_chargers} siap</Badge>
@@ -76,7 +95,7 @@ export default function Home() {
                   <Badge tone="neutral">Penuh</Badge>
                 )}
               </Card>
-            </Link>
+            </div>
           ))}
         </div>
       </section>
