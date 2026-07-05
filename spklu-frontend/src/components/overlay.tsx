@@ -3,21 +3,45 @@ import {
   createContext, useCallback, useContext, useEffect, useRef, useState,
   type ReactNode,
 } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X, CircleCheck, CircleAlert } from 'lucide-react';
 import { Button } from './ui';
+
+const FOCUSABLE =
+  'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
 
 // ===== Modal =====
 export function Modal({
   open, onClose, title, children, wide,
 }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    // Simpan fokus pemicu, kunci scroll body, pindahkan fokus ke dialog (audit C1).
+    const prevFocus = document.activeElement as HTMLElement | null;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    ref.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      // Focus trap: Tab tidak boleh keluar dari dialog ke halaman di belakang.
+      const nodes = ref.current?.querySelectorAll<HTMLElement>(FOCUSABLE);
+      if (!nodes || !nodes.length) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      prevFocus?.focus?.(); // kembalikan fokus ke pemicu saat dialog tutup
+    };
   }, [open, onClose]);
 
   return (
@@ -36,18 +60,19 @@ export function Modal({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ opacity: 0, scale: 0.94, y: 12 }}
+            tabIndex={-1}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
-            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className={`max-h-[88dvh] w-full overflow-y-auto rounded-card bg-white p-6 shadow-raise ${wide ? 'max-w-2xl' : 'max-w-md'}`}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }}
+            transition={{ duration: reduce ? 0.12 : 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className={`max-h-[88dvh] w-full overflow-y-auto rounded-card bg-white p-6 shadow-raise outline-none ${wide ? 'max-w-2xl' : 'max-w-md'}`}
           >
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-display text-[17px] font-bold">{title}</h2>
               <button
                 onClick={onClose}
                 aria-label="Tutup dialog"
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-ink-400 transition-colors hover:bg-surface-sunken hover:text-ink-600"
+                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-ink-600 transition-colors hover:bg-surface-sunken hover:text-ink-900"
               >
                 <X size={18} />
               </button>
@@ -116,11 +141,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed bottom-5 right-5 z-[200] flex w-[320px] flex-col gap-2">
+      <div className="pointer-events-none fixed bottom-5 right-5 z-[200] flex w-[320px] flex-col gap-2">
         <AnimatePresence>
           {items.map((t) => (
             <motion.div
               key={t.id}
+              // Error diumumkan segera (assertive); sukses cukup polite (audit M7).
+              role={t.kind === 'err' ? 'alert' : 'status'}
+              aria-live={t.kind === 'err' ? 'assertive' : 'polite'}
               initial={{ opacity: 0, x: 40, scale: 0.96 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 24 }}

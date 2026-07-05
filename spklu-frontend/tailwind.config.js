@@ -9,7 +9,9 @@ export default {
           900: '#0A1A32',
           700: '#24375B',
           600: '#3C4C66',
-          400: '#7C8AA0',
+          // ink-400 digelapkan agar teks body/label lolos WCAG AA (4.5:1 di
+          // atas putih & surface) — sebelumnya #7C8AA0 hanya ~3.1:1 (audit H2).
+          400: '#566A87',
           300: '#A8B3C4',
         },
         surface: {
@@ -30,6 +32,7 @@ export default {
           100: '#E0F4FE',
           400: '#38BDF8',
           500: '#0EA5E9',
+          700: '#0369A1', // untuk teks badge di atas sky-100 (audit H3: 5.2:1)
         },
         // Hijau energi — HANYA untuk charging aktif & nilai positif
         energy: {

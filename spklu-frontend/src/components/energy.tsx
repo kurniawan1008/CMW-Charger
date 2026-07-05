@@ -1,5 +1,6 @@
 // Motif khas "Arus" — garis arus listrik mengalir + instrumen ring + count-up.
 import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { PulseWave } from './motion';
 
 // ===== CountUp: angka naik mulus (tabular, tidak goyang) =====
@@ -9,11 +10,14 @@ export function CountUp({
   const [display, setDisplay] = useState(value);
   const fromRef = useRef(value);
   const rafRef = useRef(0);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     const from = fromRef.current;
     const to = value;
     if (from === to) return;
+    // Hormati prefers-reduced-motion: langsung ke nilai akhir tanpa animasi rAF.
+    if (reduce) { setDisplay(to); fromRef.current = to; return; }
     const t0 = performance.now();
     const dur = 600;
     const step = (t: number) => {
@@ -25,7 +29,7 @@ export function CountUp({
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [value]);
+  }, [value, reduce]);
 
   return (
     <span className={`tabular ${className}`}>

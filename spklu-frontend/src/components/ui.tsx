@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, forwardRef } from 'react';
+import { type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, forwardRef, useId } from 'react';
 
 // ===== Button =====
 type BtnVariant = 'primary' | 'energy' | 'ghost' | 'danger' | 'outline';
@@ -49,7 +49,9 @@ export function Card({ className = '', children, ...props }: { className?: strin
 // ===== Input =====
 export const Field = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string }>(
   ({ label, error, hint, id, className = '', ...props }, ref) => {
-    const fieldId = id || label.toLowerCase().replace(/\s+/g, '-');
+    // useId cegah tabrakan id bila dua field berlabel sama di satu halaman (audit L1).
+    const autoId = useId();
+    const fieldId = id || autoId;
     return (
       <div className="flex flex-col gap-1.5">
         <label htmlFor={fieldId} className="text-[13px] font-bold text-ink-700">
@@ -77,7 +79,7 @@ type Tone = 'blue' | 'energy' | 'amber' | 'danger' | 'neutral' | 'sky';
 const tones: Record<Tone, string> = {
   blue: 'bg-cmw-100 text-cmw-700',
   energy: 'bg-energy-100 text-energy-700',
-  sky: 'bg-sky-100 text-sky-500',
+  sky: 'bg-sky-100 text-sky-700',
   amber: 'bg-amber-100 text-amber-700',
   danger: 'bg-danger-50 text-danger-700',
   neutral: 'bg-surface-sunken text-ink-600',

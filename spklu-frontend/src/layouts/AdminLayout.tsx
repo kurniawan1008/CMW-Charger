@@ -1,8 +1,8 @@
 // Shell admin: sidebar glass + topbar dengan bell notifikasi realtime.
 // Motif arus: garis mengalir di item nav aktif — bahasa yang sama dengan user app.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   LayoutDashboard, MapPin, HardDrive, PlugZap, Bike, WalletCards,
   ScrollText, Users, ShieldCheck, Bell, LogOut, Zap,
@@ -33,8 +33,26 @@ export default function AdminLayout() {
   const toast = useToast();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
 
   const unread = notifs.filter((n) => !n.is_read).length;
+
+  // Dropdown notifikasi: tutup saat klik luar / Escape / pindah halaman (audit M1).
+  useEffect(() => {
+    if (!bellOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setBellOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [bellOpen]);
+  useEffect(() => { setBellOpen(false); }, [location.pathname]);
 
   const loadNotifs = () =>
     api.get<Paged<Notif>>('/admin/notifications?limit=12').then((r) => setNotifs(r.data)).catch(() => {});
@@ -112,10 +130,12 @@ export default function AdminLayout() {
             Jaringan pengisian motor listrik · <span className="font-mono">Rp 2.440/kWh</span>
           </p>
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative" ref={bellRef}>
               <button
                 onClick={() => setBellOpen((v) => !v)}
                 aria-label={`Notifikasi${unread ? `, ${unread} belum dibaca` : ''}`}
+                aria-expanded={bellOpen}
+                aria-haspopup="true"
                 className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-line bg-white text-ink-600 transition-colors hover:border-cmw-500 hover:text-cmw-600"
               >
                 <Bell size={17} />
@@ -165,10 +185,10 @@ export default function AdminLayout() {
         <AnimatePresence mode="wait">
           <motion.main
             key={location.pathname}
-            initial={{ opacity: 0, y: 10 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+            transition={{ duration: reduce ? 0.1 : 0.2, ease: [0.16, 1, 0.3, 1] }}
             className="mx-auto w-full max-w-6xl flex-1 px-7 py-6"
           >
             <Outlet />

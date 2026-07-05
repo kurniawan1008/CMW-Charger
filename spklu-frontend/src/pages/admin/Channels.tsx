@@ -82,7 +82,7 @@ export default function Channels() {
       <ConfirmDialog
         open={confirming !== null}
         onClose={() => setConfirming(null)}
-        onConfirm={() => confirming && toggleMaintenance(confirming)}
+        onConfirm={async () => { if (confirming) await toggleMaintenance(confirming); }}
         title="Masukkan channel ke maintenance?"
         body={`CH ${confirming?.device_ch} di ${confirming?.machine_name ?? 'mesin'} akan dipaksa OFFLINE dan tidak bisa dipakai user sampai diaktifkan lagi.`}
         confirmLabel="Ya, maintenance"

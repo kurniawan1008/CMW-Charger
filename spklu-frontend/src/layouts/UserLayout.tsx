@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { House, Wallet2, History, UserRound } from 'lucide-react';
 
 const tabs = [
@@ -11,16 +11,17 @@ const tabs = [
 
 export default function UserLayout() {
   const location = useLocation();
+  const reduce = useReducedMotion();
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[520px] flex-col">
       <AnimatePresence mode="wait">
         <motion.main
           key={location.pathname}
-          initial={{ opacity: 0, y: 14 }}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+          transition={{ duration: reduce ? 0.12 : 0.22, ease: [0.16, 1, 0.3, 1] }}
           className="flex-1 px-4 pb-28 pt-6"
         >
           <Outlet />

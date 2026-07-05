@@ -28,7 +28,12 @@
       "Bash(curl -s -X POST http://127.0.0.1:3001/auth/login -H \"content-type: application/json\" -d '{\"identifier\":\"x\",\"password\":\"y\"}' -o /dev/null -w \"login-bad: %{http_code}\\\\n\")",
       "Bash(SIM_MODE=ONLINE SIM_SPEEDUP=600 SIM_DEVICE_KEY=DK-LOCAL-7f3k9m2q4x8w node sim.js)",
       "Bash(node tools/trial-e2e.mjs)",
-      "Bash(node tools/test-reconciler.mjs SMR7Y9Z5QAKAVYDTZSW)"
+      "Bash(node tools/test-reconciler.mjs SMR7Y9Z5QAKAVYDTZSW)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"UPDATE users SET balance=50000 WHERE id=12;\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }; Start-Sleep 1; \"done\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"UPDATE users SET role='SUPERADMIN' WHERE id=13;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -N -e \"SELECT email FROM users WHERE id=13\")",
+      "Bash(npm run *)"
     ]
   }
 }

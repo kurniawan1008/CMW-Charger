@@ -31,9 +31,9 @@ export default function Home() {
         <div className="soft-float absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur">
           <Zap size={19} className="fill-sky-400 text-sky-400" />
         </div>
-        <p className="text-[13px] font-semibold text-white/70">Halo, {firstName}</p>
-        <p className="mt-3 text-[12px] font-bold uppercase tracking-wider text-white/60">Saldo aktif</p>
-        <p className="font-display text-[34px] font-extrabold leading-tight">
+        <h1 className="text-[13px] font-semibold text-white/85">Halo, {firstName}</h1>
+        <p className="mt-3 text-[12px] font-bold uppercase tracking-wider text-white/85">Saldo aktif</p>
+        <p className="font-display text-[34px] font-extrabold leading-tight text-white">
           <CountUp value={Number(user?.balance ?? 0)} prefix="Rp " />
         </p>
         <div className="mt-5 flex gap-2.5">
@@ -69,8 +69,13 @@ export default function Home() {
               role="button"
               tabIndex={0}
               onClick={() => navigate('/charge', { state: { locationId: loc.id } })}
-              onKeyDown={(e) => { if (e.key === 'Enter') navigate('/charge', { state: { locationId: loc.id } }); }}
-              className="cursor-pointer"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate('/charge', { state: { locationId: loc.id } });
+                }
+              }}
+              className="cursor-pointer rounded-card"
             >
               <Card className="hover-wiggle card-lift flex items-center gap-3.5">
                 <div className="wiggle-target flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
@@ -84,7 +89,7 @@ export default function Home() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-cmw-50 px-2.5 py-1 text-[11px] font-bold text-cmw-600 transition-colors hover:bg-cmw-100"
+                    className="mt-1.5 inline-flex min-h-[32px] items-center gap-1 rounded-full bg-cmw-50 px-3 py-1.5 text-[11px] font-bold text-cmw-600 transition-colors hover:bg-cmw-100"
                   >
                     <ExternalLink size={11} /> Lihat di Maps
                   </a>

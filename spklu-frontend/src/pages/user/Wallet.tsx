@@ -50,8 +50,8 @@ export default function Wallet() {
     <div className="flex flex-col gap-5">
       <section className="rise-in relative overflow-hidden rounded-card bg-grad-deep p-6 text-white shadow-raise">
         <div className="aurora right-[-30%] top-[-60%] h-64 w-64" style={{ background: 'rgba(16,185,129,0.3)' }} />
-        <p className="text-[12px] font-bold uppercase tracking-wider text-white/60">Saldo aktif</p>
-        <p className="font-display text-[34px] font-extrabold leading-tight">
+        <h1 className="text-[12px] font-bold uppercase tracking-wider text-white/85">Saldo aktif</h1>
+        <p className="font-display text-[34px] font-extrabold leading-tight text-white">
           <CountUp value={Number(user?.balance ?? 0)} prefix="Rp " />
         </p>
       </section>

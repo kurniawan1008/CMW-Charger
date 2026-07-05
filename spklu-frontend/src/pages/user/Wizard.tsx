@@ -2,7 +2,7 @@
 // Transisi antar langkah searah (maju = geser kiri); telemetry live via WebSocket.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation as useRouteLocation, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft, MapPin, Bike, CircleCheck, Zap, X, TriangleAlert, PartyPopper, ExternalLink,
 } from 'lucide-react';
@@ -29,6 +29,7 @@ export default function Wizard() {
   const [step, setStep] = useState(1);
   const [dir, setDir] = useState(1);
   const [price, setPrice] = useState(PRICE_FALLBACK);
+  const reduce = useReducedMotion();
 
   const [locations, setLocations] = useState<Location[]>([]);
   const [chargers, setChargers] = useState<Charger[]>([]);
@@ -149,11 +150,13 @@ export default function Wizard() {
 
   // Variants statis (tanpa custom function) — varian ber-custom membuat exit
   // AnimatePresence macet; arah tetap terasa dari offset enter/exit.
-  const variants = {
-    enter: { opacity: 0, x: 28 * dir },
-    center: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 * dir },
-  };
+  const variants = reduce
+    ? { enter: { opacity: 0 }, center: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        enter: { opacity: 0, x: 28 * dir },
+        center: { opacity: 1, x: 0 },
+        exit: { opacity: 0, x: -20 * dir },
+      };
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[520px] flex-col px-4 pb-10 pt-5">
@@ -162,20 +165,20 @@ export default function Wizard() {
         {step <= 5 && (
           <button
             onClick={() => (step === 1 ? navigate('/') : go(step - 1))}
-            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-line bg-white text-ink-600 transition-colors hover:border-cmw-500 hover:text-cmw-600"
+            className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-line bg-white text-ink-600 transition-colors hover:border-cmw-500 hover:text-cmw-600"
             aria-label="Kembali"
           >
             <ArrowLeft size={18} />
           </button>
         )}
         <div className="flex-1">
-          <p className="font-display text-[17px] font-bold leading-tight">
+          <h1 className="font-display text-[17px] font-bold leading-tight">
             {step <= 5 ? STEPS[step - 1] : step === 6 ? 'Sesi berlangsung' : 'Selesai'}
-          </p>
+          </h1>
           {step <= 5 && <p className="text-xs font-semibold text-ink-400">Langkah {step} dari 5</p>}
         </div>
         {step <= 5 && (
-          <Link to="/" aria-label="Tutup" className="flex h-10 w-10 items-center justify-center rounded-xl text-ink-400 hover:text-ink-600">
+          <Link to="/" aria-label="Tutup" className="flex h-11 w-11 items-center justify-center rounded-xl text-ink-600 hover:text-ink-900">
             <X size={19} />
           </Link>
         )}
@@ -218,7 +221,12 @@ export default function Wizard() {
                   role="button"
                   tabIndex={loc.status === 'OFFLINE' ? -1 : 0}
                   onClick={() => { if (loc.status !== 'OFFLINE') { setSelLocation(loc); setSelCharger(null); go(2); } }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && loc.status !== 'OFFLINE') { setSelLocation(loc); setSelCharger(null); go(2); } }}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && loc.status !== 'OFFLINE') {
+                      e.preventDefault();
+                      setSelLocation(loc); setSelCharger(null); go(2);
+                    }
+                  }}
                   className={`rise-in text-left ${loc.status === 'OFFLINE' ? 'opacity-50' : 'cursor-pointer'}`}
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
@@ -234,7 +242,7 @@ export default function Wizard() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-cmw-50 px-2.5 py-1 text-[11px] font-bold text-cmw-600 transition-colors hover:bg-cmw-100"
+                        className="mt-1.5 inline-flex min-h-[32px] items-center gap-1 rounded-full bg-cmw-50 px-3 py-1.5 text-[11px] font-bold text-cmw-600 transition-colors hover:bg-cmw-100"
                       >
                         <ExternalLink size={11} /> Lihat di Maps
                       </a>
@@ -343,7 +351,7 @@ export default function Wizard() {
                     <button
                       key={v}
                       onClick={() => setAmount(v)}
-                      className={`cursor-pointer rounded-full px-3.5 py-1.5 text-[13px] font-bold transition-colors ${amount === v ? 'bg-cmw-600 text-white' : 'bg-surface-sunken text-ink-600 hover:bg-cmw-100'}`}
+                      className={`min-h-[40px] cursor-pointer rounded-full px-4 py-2.5 text-[13px] font-bold transition-colors ${amount === v ? 'bg-cmw-600 text-white' : 'bg-surface-sunken text-ink-600 hover:bg-cmw-100'}`}
                     >
                       {mode === 'idr' ? `${v / 1000}rb` : `${v} kWh`}
                     </button>
@@ -394,6 +402,14 @@ export default function Wizard() {
               <Badge tone="energy" pulse>Sedang mengisi daya</Badge>
               <p className="-mt-3 text-[13px] font-semibold text-ink-400">
                 {selCharger?.label} · {selLocation?.name}
+              </p>
+
+              {/* Ringkasan status untuk pembaca layar — diumumkan berkala (audit M5).
+                  key per 5% agar tidak cerewet tiap tick. */}
+              <p key={Math.round(Math.min(1, progress) * 20)} className="sr-only" aria-live="polite">
+                {tick
+                  ? `Terisi ${Math.round(Math.min(1, progress) * 100)} persen, ${tick.energy.toFixed(2)} kWh, ${Math.round(tick.power)} watt, biaya ${rupiah(tick.cost)}.`
+                  : 'Menunggu data pengisian.'}
               </p>
 
               <div className="relative">
