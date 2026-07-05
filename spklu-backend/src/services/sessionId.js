@@ -7,9 +7,11 @@ const RAND_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // tanpa karakter ambi
 export const SESSION_ID_MAX = 23;
 
 export function generateSessionId(now = Date.now()) {
+  // 10 char acak (~50 bit) — id sesi tidak boleh mudah ditebak karena dipakai
+  // di topik telemetry & rekonsiliasi billing (audit keamanan L2).
   let rand = '';
-  const bytes = crypto.randomBytes(4);
-  for (let i = 0; i < 4; i++) rand += RAND_ALPHABET[bytes[i] % RAND_ALPHABET.length];
+  const bytes = crypto.randomBytes(10);
+  for (let i = 0; i < 10; i++) rand += RAND_ALPHABET[bytes[i] % RAND_ALPHABET.length];
   const id = `S${now.toString(36).toUpperCase()}${rand}`;
   if (id.length > SESSION_ID_MAX) throw new Error(`sessionId melebihi ${SESSION_ID_MAX} char`);
   return id;

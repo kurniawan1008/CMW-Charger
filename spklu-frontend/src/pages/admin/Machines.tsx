@@ -29,6 +29,7 @@ export default function Machines() {
       .then(setResult).catch(() => {});
 
   useEffect(() => { load(); }, [q, page]);
+  useEffect(() => { setPage(1); }, [q]); // reset halaman saat mencari (audit H3)
   useEffect(() => {
     api.get<Paged<StationOpt>>('/admin/locations?limit=100').then((r) => setStations(r.data)).catch(() => {});
   }, []);

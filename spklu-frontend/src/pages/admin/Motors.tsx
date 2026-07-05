@@ -28,6 +28,7 @@ export default function Motors() {
       .then(setResult).catch(() => {});
 
   useEffect(() => { load(); }, [q, page]);
+  useEffect(() => { setPage(1); }, [q]); // reset halaman saat mencari (audit H3)
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -1,6 +1,6 @@
 // Wizard charging: Lokasi → Charger → Motor → Jumlah → Konfirmasi → Live → Selesai.
 // Transisi antar langkah searah (maju = geser kiri); telemetry live via WebSocket.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation as useRouteLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -13,6 +13,7 @@ import { rupiah, duration, gmapsUrl } from '../../lib/format';
 import { Button, Card, Badge } from '../../components/ui';
 import { CountUp, CurrentLine, FlowLink, ProgressRing, Sparkline } from '../../components/energy';
 import { BoltRain, Confetti } from '../../components/motion';
+import { useToast } from '../../components/overlay';
 import type { Charger, Location, MotorProfile, SessionFinal, SessionTick } from '../../lib/types';
 
 const STEPS = ['Lokasi', 'Charger', 'Motor', 'Jumlah', 'Konfirmasi'];
@@ -41,14 +42,30 @@ export default function Wizard() {
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [error, setError] = useState('');
   const [tick, setTick] = useState<SessionTick | null>(null);
   const [powerHistory, setPowerHistory] = useState<number[]>([]);
   const [finalResult, setFinalResult] = useState<SessionFinal | null>(null);
+  const toast = useToast();
+  const stepTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const go = (n: number) => { setDir(n > step ? 1 : -1); setStep(n); };
 
   useEffect(() => {
+    // Pemulihan sesi (audit C2): refresh/back saat charging tidak boleh membuat
+    // sesi "hilang dari layar" padahal saldo tereservasi & mesin mengisi.
+    api.get<{ session: { id: string; station_name: string | null; device_ch: number } | null }>('/sessions/active')
+      .then((r) => {
+        if (r.session) {
+          setSessionId(r.session.id);
+          setSelLocation((cur) => cur ?? ({ name: r.session!.station_name ?? 'Stasiun' } as Location));
+          setSelCharger((cur) => cur ?? ({ id: 0, label: `Charger ${r.session!.device_ch}`, available: false, status: 'CHARGING' }));
+          setStep(6);
+        }
+      })
+      .catch(() => {});
+
     api.get<{ pricePerKwh: number }>('/price').then((r) => setPrice(r.pricePerKwh)).catch(() => {});
     api.get<Location[]>('/locations').then((raw) => {
       const ls = [...raw].sort((a, b) => b.available_chargers - a.available_chargers);
@@ -58,14 +75,18 @@ export default function Wizard() {
         const found = ls.find((l) => l.id === preset);
         if (found) { setSelLocation(found); setStep(2); }
       }
-    }).catch(() => {});
-    api.get<MotorProfile[]>('/motors').then(setMotors).catch(() => {});
+    }).catch(() => toast('err', 'Gagal memuat daftar lokasi — periksa koneksi lalu coba lagi.'));
+    api.get<MotorProfile[]>('/motors').then(setMotors)
+      .catch(() => toast('err', 'Gagal memuat daftar motor.'));
+    return () => clearTimeout(stepTimer.current);
   }, []);
 
   useEffect(() => {
-    if (!selLocation) return;
-    api.get<Charger[]>(`/locations/${selLocation.id}/chargers`).then(setChargers).catch(() => {});
-  }, [selLocation?.id]);
+    if (!selLocation?.id) return;
+    setChargers([]); // jangan tampilkan charger lokasi lama saat fetch berjalan
+    api.get<Charger[]>(`/locations/${selLocation.id}/chargers`).then(setChargers)
+      .catch(() => toast('err', 'Gagal memuat charger di lokasi ini.'));
+  }, [selLocation?.id, step === 2]);
 
   // Telemetry live
   useTopic(sessionId ? `session.${sessionId}` : null, (data) => {
@@ -73,10 +94,11 @@ export default function Wizard() {
     if ('final' in d && d.final) {
       setFinalResult(d);
       refresh(); // saldo berubah (refund)
-      setTimeout(() => setStep(7), 700);
-    } else if ('energy' in d) {
+      clearTimeout(stepTimer.current);
+      stepTimer.current = setTimeout(() => setStep(7), 700);
+    } else if ('energy' in d && Number.isFinite(d.energy)) {
       setTick(d);
-      setPowerHistory((h) => [...h.slice(-40), d.power]);
+      setPowerHistory((h) => [...h.slice(-40), Number(d.power) || 0]);
     }
   });
 
@@ -109,8 +131,15 @@ export default function Wizard() {
   };
 
   const stopSession = async () => {
-    if (!sessionId) return;
-    try { await api.post(`/sessions/${sessionId}/stop`); } catch { /* final event tetap datang */ }
+    if (!sessionId || stopping) return;
+    setStopping(true);
+    try {
+      await api.post(`/sessions/${sessionId}/stop`);
+      // Finalisasi datang lewat event WS; tombol tetap "menunggu" sampai final.
+    } catch (err) {
+      setStopping(false);
+      toast('err', `Perintah stop gagal terkirim — coba lagi. (${err instanceof Error ? err.message : ''})`);
+    }
   };
 
   const progress = useMemo(() => {
@@ -406,8 +435,8 @@ export default function Wizard() {
                 ))}
               </div>
 
-              <Button variant="danger" onClick={stopSession} className="mt-1">
-                Hentikan sesi
+              <Button variant="danger" onClick={stopSession} loading={stopping} className="mt-1">
+                {stopping ? 'Menghentikan…' : 'Hentikan sesi'}
               </Button>
             </div>
           )}

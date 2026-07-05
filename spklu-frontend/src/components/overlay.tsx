@@ -68,6 +68,7 @@ export function ConfirmDialog({
   title: string; body: string; confirmLabel?: string; danger?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <p className="mb-6 text-sm leading-relaxed text-ink-600">{body}</p>
@@ -78,7 +79,15 @@ export function ConfirmDialog({
           loading={busy}
           onClick={async () => {
             setBusy(true);
-            try { await onConfirm(); onClose(); } finally { setBusy(false); }
+            try {
+              await onConfirm();
+              onClose();
+            } catch (err) {
+              // Jangan biarkan dialog menggantung tanpa kabar saat aksi gagal (audit M2).
+              toast('err', err instanceof Error ? err.message : 'Aksi gagal — coba lagi.');
+            } finally {
+              setBusy(false);
+            }
           }}
         >
           {confirmLabel}

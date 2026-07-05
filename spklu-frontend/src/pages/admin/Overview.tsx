@@ -42,7 +42,8 @@ export default function Overview() {
   useEffect(() => { loadSummary(); loadPending(); }, []);
   useEffect(() => {
     api.get<{ bucket: string; revenue: number }[]>(`/admin/metrics/revenue?period=${period}`)
-      .then(setRevenue).catch(() => {});
+      .then((rows) => setRevenue(rows.map((r) => ({ ...r, revenue: Number(r.revenue) || 0 }))))
+      .catch(() => {});
   }, [period]);
 
   // Sesi/fault realtime memengaruhi angka overview.
@@ -59,11 +60,12 @@ export default function Overview() {
     }
   };
 
+  // Number() eksplisit: DECIMAL MySQL bisa tiba sebagai string — CountUp NaN tanpa ini.
   const stats = summary ? [
-    { label: 'Total Pendapatan', value: summary.revenue, prefix: 'Rp ', icon: Banknote, tint: 'bg-cmw-50 text-cmw-600' },
-    { label: 'Top-Up Disetujui', value: summary.approvedTopup, prefix: 'Rp ', icon: WalletCards, tint: 'bg-energy-50 text-energy-600' },
-    { label: 'Pengguna Terdaftar', value: summary.registeredUsers, prefix: '', icon: UsersIcon, tint: 'bg-sky-100 text-sky-500' },
-    { label: 'Sesi Aktif', value: summary.activeSessions, prefix: '', icon: Activity, tint: 'bg-amber-100 text-amber-700', live: true },
+    { label: 'Total Pendapatan', value: Number(summary.revenue) || 0, prefix: 'Rp ', icon: Banknote, tint: 'bg-cmw-50 text-cmw-600' },
+    { label: 'Top-Up Disetujui', value: Number(summary.approvedTopup) || 0, prefix: 'Rp ', icon: WalletCards, tint: 'bg-energy-50 text-energy-600' },
+    { label: 'Pengguna Terdaftar', value: Number(summary.registeredUsers) || 0, prefix: '', icon: UsersIcon, tint: 'bg-sky-100 text-sky-500' },
+    { label: 'Sesi Aktif', value: Number(summary.activeSessions) || 0, prefix: '', icon: Activity, tint: 'bg-amber-100 text-amber-700', live: true },
   ] : [];
 
   return (

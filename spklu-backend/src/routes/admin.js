@@ -305,10 +305,12 @@ adminRouter.post('/topups/:id/reject', async (req, res, next) => {
     if (!reason) return res.status(400).json({ error: 'Alasan reject wajib diisi' });
     const [t] = await query('SELECT * FROM topup_requests WHERE id = ?', [req.params.id]);
     if (!t) return res.status(404).json({ error: 'Request tidak ditemukan' });
-    if (t.status !== 'PENDING') return res.status(409).json({ error: 'Sudah diputuskan' });
-    await query(
-      "UPDATE topup_requests SET status='REJECTED', reason=?, decided_at=NOW(), decided_by=? WHERE id=?",
+    // Guard status di UPDATE (audit M2): approve & reject bersamaan tidak boleh
+    // menghasilkan saldo masuk tapi status REJECTED.
+    const upd = await query(
+      "UPDATE topup_requests SET status='REJECTED', reason=?, decided_at=NOW(), decided_by=? WHERE id=? AND status='PENDING'",
       [reason, req.user.id, t.id]);
+    if (!upd.affectedRows) return res.status(409).json({ error: 'Sudah diputuskan' });
     await notify({
       userId: t.user_id, type: 'topup_rejected', title: 'Top-up ditolak', body: reason,
     });
@@ -381,7 +383,9 @@ adminRouter.post('/users/:id/deactivate', async (req, res, next) => {
 });
 adminRouter.post('/users/:id/activate', async (req, res, next) => {
   try {
-    await query("UPDATE users SET status='ACTIVE' WHERE id=?", [req.params.id]);
+    // Scope role='USER' (audit M6): admin biasa tidak boleh menghidupkan lagi
+    // akun admin yang dinonaktifkan superadmin.
+    await query("UPDATE users SET status='ACTIVE' WHERE id=? AND role='USER'", [req.params.id]);
     res.json({ ok: true });
   } catch (err) { next(err); }
 });

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, tokenStore } from './api';
+import { clientSocket } from './ws';
 import type { User } from './types';
 
 interface AuthState {
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (identifier: string, password: string) => {
     const res = await api.post<{ token: string; user: User }>('/auth/login', { identifier, password });
     tokenStore.set(res.token);
+    clientSocket.reset(); // koneksi WS ikut token baru
     setUser(res.user);
     return res.user;
   };
@@ -49,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     tokenStore.clear();
+    clientSocket.reset();
     setUser(null);
   };
 

@@ -15,7 +15,8 @@ import { chStateToStatus } from '../services/commands.js';
 
 export const deviceEvents = new EventEmitter(); // 'event' (dev, evt) | 'state' (dev, state)
 
-const wss = new WebSocketServer({ noServer: true });
+// maxPayload kecil: baris serial firmware < 1 KB; payload raksasa = DoS (audit M4).
+const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
 const devices = new Map(); // deviceId -> conn
 
 const CMD_TIMEOUT_MS = 5000;
@@ -23,6 +24,7 @@ const CMD_TIMEOUT_MS = 5000;
 class DeviceConn {
   constructor(ws, row) {
     this.ws = ws;
+    this.isAlive = true;
     this.id = row.id;
     this.name = row.name;
     this.stationId = row.station_id;
@@ -122,11 +124,17 @@ export function handleDeviceUpgrade(req, socket, head) {
     const helloTimer = setTimeout(() => { if (!conn) ws.close(4001, 'hello timeout'); }, 5000);
 
     ws.on('message', async (raw) => {
+      // Seluruh handler dibungkus try/catch: error DB pada satu pesan telemetry
+      // TIDAK boleh menjadi unhandled rejection yang mematikan proses (audit C2).
+      try {
       let msg;
       try { msg = JSON.parse(raw); } catch { return; }
 
       if (msg.type === 'hello' && !conn) {
-        const rows = await query('SELECT * FROM devices WHERE device_key = ?', [msg.deviceKey || '']);
+        const key = String(msg.deviceKey || '');
+        // Tolak key placeholder dari seed — wajib diganti sebelum produksi (audit H3).
+        if (!key || key.startsWith('CHANGE_ME')) { ws.close(4003, 'device_key placeholder'); return; }
+        const rows = await query('SELECT * FROM devices WHERE device_key = ?', [key]);
         if (!rows.length) { ws.close(4003, 'device_key tidak dikenal'); return; }
         clearTimeout(helloTimer);
         const old = devices.get(rows[0].id);
@@ -146,7 +154,12 @@ export function handleDeviceUpgrade(req, socket, head) {
       if (msg.type === 'line' && conn && typeof msg.line === 'string') {
         await conn.handleLine(msg.line.trim());
       }
+      } catch (err) {
+        console.error('[deviceHub] gagal memproses pesan device:', err.message);
+      }
     });
+
+    ws.on('pong', () => { if (conn) conn.isAlive = true; });
 
     ws.on('close', async () => {
       clearTimeout(helloTimer);
@@ -161,6 +174,18 @@ export function handleDeviceUpgrade(req, socket, head) {
 
 export const getDevice = (deviceId) => devices.get(deviceId) || null;
 export const isDeviceOnline = (deviceId) => devices.has(deviceId);
+
+// Heartbeat (audit M1): Pi yang mati listrik tanpa TCP FIN akan tampak "online"
+// berjam-jam. Ping tiap 30 s; dua kali tanpa pong -> terminate -> markOffline.
+export function startDeviceHeartbeat() {
+  setInterval(() => {
+    for (const conn of devices.values()) {
+      if (conn.isAlive === false) { conn.ws.terminate(); continue; }
+      conn.isAlive = false;
+      try { conn.ws.ping(); } catch { /* socket sudah mati */ }
+    }
+  }, 30_000).unref();
+}
 
 export async function sendToDevice(deviceId, line) {
   const dev = devices.get(deviceId);

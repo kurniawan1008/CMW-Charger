@@ -1,4 +1,6 @@
 // Koneksi WS klien tunggal: subscribe topik (session.{sid}, notifikasi user/admin).
+// Perbaikan audit C1/M1/H2: resubscribe setelah reconnect, guard socket basi,
+// backoff eksponensial, dan berhenti retry saat auth ditolak.
 import { useEffect, useRef } from 'react';
 import { api, tokenStore } from './api';
 
@@ -7,17 +9,28 @@ type Handler = (data: unknown) => void;
 class ClientSocket {
   private ws: WebSocket | null = null;
   private handlers = new Map<string, Set<Handler>>();
-  private queue: string[] = [];
+  private retryMs = 2000;
+  private stopped = false;
 
   private ensure() {
-    if (this.ws && this.ws.readyState <= WebSocket.OPEN) return;
+    if (this.stopped) return;
+    if (this.ws && this.ws.readyState === WebSocket.CONNECTING) return;
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
     const token = tokenStore.get();
     if (!token) return;
-    this.ws = new WebSocket(api.wsUrl(token));
-    this.ws.onopen = () => {
-      for (const msg of this.queue.splice(0)) this.ws?.send(msg);
+
+    const ws = new WebSocket(api.wsUrl(token));
+    this.ws = ws;
+
+    ws.onopen = () => {
+      this.retryMs = 2000;
+      // Resubscribe SEMUA topik aktif — tanpa ini, satu kedipan WiFi saat
+      // charging mematikan telemetry & event refund secara permanen.
+      for (const topic of this.handlers.keys()) {
+        ws.send(JSON.stringify({ type: 'subscribe', topic }));
+      }
     };
-    this.ws.onmessage = (e) => {
+    ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
         if (msg.type === 'event') {
@@ -25,24 +38,45 @@ class ClientSocket {
         }
       } catch { /* abaikan frame tak dikenal */ }
     };
-    this.ws.onclose = () => {
-      this.ws = null;
-      if (this.handlers.size) setTimeout(() => this.ensure(), 2000);
+    ws.onclose = (e) => {
+      // Guard socket basi: onclose milik socket lama tidak boleh me-null socket baru.
+      if (this.ws === ws) this.ws = null;
+      if (e.code === 4001 || e.code === 1008) { this.stopped = true; return; } // auth ditolak
+      if (this.handlers.size && !this.stopped) {
+        setTimeout(() => this.ensure(), this.retryMs);
+        this.retryMs = Math.min(this.retryMs * 2, 30_000);
+      }
     };
   }
 
+  /** Dipanggil setelah login/logout agar koneksi mengikuti token terbaru. */
+  reset() {
+    this.stopped = false;
+    this.retryMs = 2000;
+    this.ws?.close();
+    this.ws = null;
+    if (this.handlers.size) this.ensure();
+  }
+
   subscribe(topic: string, handler: Handler) {
-    if (!this.handlers.has(topic)) this.handlers.set(topic, new Set());
+    const first = !this.handlers.has(topic);
+    if (first) this.handlers.set(topic, new Set());
     this.handlers.get(topic)!.add(handler);
     this.ensure();
-    const msg = JSON.stringify({ type: 'subscribe', topic });
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(msg);
-    else this.queue.push(msg);
+    // Satu frame subscribe per TOPIK, bukan per handler.
+    if (first && this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'subscribe', topic }));
+    }
 
     return () => {
       const set = this.handlers.get(topic);
       set?.delete(handler);
-      if (set && !set.size) this.handlers.delete(topic);
+      if (set && !set.size) {
+        this.handlers.delete(topic);
+        if (this.ws?.readyState === WebSocket.OPEN && topic.startsWith('session.')) {
+          this.ws.send(JSON.stringify({ type: 'unsubscribe', topic }));
+        }
+      }
     };
   }
 }

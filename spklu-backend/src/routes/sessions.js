@@ -3,7 +3,7 @@
 import { Router } from 'express';
 import { query, getPricePerKwh } from '../db.js';
 import { authRequired, requireAdmin } from '../auth/jwt.js';
-import { startSession, stopSession } from '../services/sessionService.js';
+import { startSession, stopSession, getActiveSession } from '../services/sessionService.js';
 
 export const sessionsRouter = Router();
 sessionsRouter.use(authRequired);
@@ -56,6 +56,13 @@ sessionsRouter.get('/motors', async (_req, res, next) => {
 
 sessionsRouter.get('/price', async (_req, res, next) => {
   try { res.json({ pricePerKwh: await getPricePerKwh() }); } catch (err) { next(err); }
+});
+
+// Pemulihan UI: sesi ACTIVE milik user (untuk hydrate wizard setelah refresh).
+sessionsRouter.get('/sessions/active', async (req, res, next) => {
+  try {
+    res.json({ session: await getActiveSession(req.user.id) });
+  } catch (err) { next(err); }
 });
 
 sessionsRouter.post('/sessions/start', async (req, res, next) => {
