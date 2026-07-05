@@ -110,8 +110,12 @@ export function ProgressRing({
 export function FlowLink({ active }: { active: boolean }) {
   return (
     <div className="flex items-center justify-center gap-3" aria-hidden>
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-grad-deep shadow-glow">
-        {active && <PulseWave color="rgba(56,189,248,0.4)" />}
+      {/* Charger: biru muda cerah — sumber arus */}
+      <div
+        className="relative flex h-11 w-11 items-center justify-center rounded-2xl shadow-glow"
+        style={{ background: 'linear-gradient(135deg,#5EA2F1 0%,#38BDF8 60%,#7DD3FC 100%)' }}
+      >
+        {active && <PulseWave color="rgba(56,189,248,0.45)" />}
         <svg viewBox="0 0 24 24" className="h-5 w-5 text-white" fill="currentColor">
           <polygon points="13,2 4,14 11,14 9,22 20,9 12,9" />
         </svg>
@@ -129,8 +133,12 @@ export function FlowLink({ active }: { active: boolean }) {
           </linearGradient>
         </defs>
       </svg>
-      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border-2 transition-colors ${active ? 'border-energy-500 bg-energy-50' : 'border-line bg-white'}`}>
-        <svg viewBox="0 0 24 24" className={`h-5 w-5 ${active ? 'text-energy-600' : 'text-ink-300'}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {/* Motor: hijau tua pekat — penerima energi, senada dengan kotak charger */}
+      <div
+        className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-all ${active ? 'shadow-glow-energy' : 'border-2 border-line bg-white'}`}
+        style={active ? { background: 'linear-gradient(135deg,#0A9E6E 0%,#087F58 70%,#065F46 100%)' } : undefined}
+      >
+        <svg viewBox="0 0 24 24" className={`h-5 w-5 ${active ? 'text-white' : 'text-ink-300'}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="18.5" cy="17.5" r="3.5" /><circle cx="5.5" cy="17.5" r="3.5" />
           <path d="M15 6a1 1 0 1 0 0-2a1 1 0 0 0 0 2m-3 11.5V14l-3-3l4-3l2 3h2" />
         </svg>
