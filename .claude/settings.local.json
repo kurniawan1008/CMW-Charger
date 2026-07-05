@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git init *)"
+      "Bash(git init *)",
+      "Bash(npm install *)",
+      "Bash(npm test *)",
+      "Bash(node --test)",
+      "Bash(where mysql *)",
+      "Bash(sc query *)",
+      "Read(//c/xampp/mysql/bin/**)",
+      "Read(//c/Program Files/**)",
+      "Bash(tasklist)",
+      "Bash(./mysqld.exe --defaults-file=/c/xampp/mysql/bin/my.ini --standalone)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root -e \"SELECT VERSION\\(\\);\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SHOW TABLES; SELECT k,v FROM settings; SELECT id,brand,model,fw_slot,vset_v,iset_a FROM motor_profiles;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root -e \"SHOW DATABASES;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SHOW TABLES;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"SELECT COUNT\\(*\\) AS users FROM users; SELECT COUNT\\(*\\) AS sessions FROM sessions;\")"
     ]
   }
 }
