@@ -21,7 +21,10 @@
       "Bash(/c/xampp/mysql/bin/mysql.exe -u root spklu_db -e \"UPDATE users SET balance=100000 WHERE id=7; SELECT balance FROM users WHERE id=7;\")",
       "Bash(git add *)",
       "Bash(git commit -q -m 'FlowLink: charger biru muda, motor hijau tua — bobot warna dibalik, tone senada *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(node src/server.js)",
+      "Bash(curl -s -m 2 http://127.0.0.1:3001/health)",
+      "Bash(SIM_MODE=ONLINE SIM_SPEEDUP=600 node sim.js)"
     ]
   }
 }
