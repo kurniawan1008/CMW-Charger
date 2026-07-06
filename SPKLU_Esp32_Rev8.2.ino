@@ -121,7 +121,9 @@ static const int      EXT_WDT_PIN     = -1;   // contoh: GPIO4. -1 = nonaktif
 //        ALARM SUHU DINI / SOFT OVER-TEMP (Phase 3 hardening)
 //  Peringatan lebih awal di bawah OTP hardware XY-12550S. TIDAK
 //  menggantikan OTP modul (itu tetap pengaman utama di hardware).
-//   - t_in/t_ex >= OTP_WARN_C  -> tampilkan peringatan + emit event (rate-limited)
+//   - t_in >= OTP_WARN_C  -> tampilkan peringatan + emit event (rate-limited)
+//     (t_ex diabaikan untuk alarm: probe eksternal sengaja tidak dipasang,
+//     hanya mengandalkan sensor internal modul yang sudah cukup akurat)
 //   - OTP_SOFT_STOP true & suhu >= OTP_STOP_C -> hentikan output lebih dini
 // ===========================================================
 static const bool     OTP_SOFT_ENABLE = true;
@@ -924,7 +926,9 @@ void handleOCPRetry(uint8_t c) {
 // hardware XY-12550S — hanya peringatan/stop lebih awal. Dipanggil dari loop poll.
 void checkOverTemp(uint8_t c) {
   if (!OTP_SOFT_ENABLE || !chEnabled(c)) return;
-  float tmax = (ch[c].r.t_in > ch[c].r.t_ex) ? ch[c].r.t_in : ch[c].r.t_ex;
+  // Hanya sensor internal (t_in) — probe eksternal (t_ex) tidak dipasang di
+  // instalasi ini, nilainya mengambang/tidak valid dan akan memicu alarm palsu.
+  float tmax = ch[c].r.t_in;
   if (tmax < OTP_WARN_C) return;
 
   // Peringatan (rate-limited, tahan millis() overflow via selisih signed).
