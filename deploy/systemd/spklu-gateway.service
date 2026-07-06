@@ -1,0 +1,27 @@
+# Systemd unit — SPKLU Gateway (Raspberry Pi Zero 2W)
+#
+# Pasang:
+#   sudo cp deploy/systemd/spklu-gateway.service /etc/systemd/system/
+#   sudo nano /etc/systemd/system/spklu-gateway.service   # sesuaikan path & user
+#   sudo cp gateway/.env.example /etc/spklu-gateway.env
+#   sudo nano /etc/spklu-gateway.env                       # isi WS_URL, DEVICE_KEY, SERIAL
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now spklu-gateway
+#   journalctl -u spklu-gateway -f
+
+[Unit]
+Description=SPKLU Gateway — UART <-> WebSocket bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+EnvironmentFile=/etc/spklu-gateway.env
+WorkingDirectory=/home/pi/CMW-Charger/gateway
+ExecStart=/home/pi/CMW-Charger/gateway/.venv/bin/python3 /home/pi/CMW-Charger/gateway/gateway.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

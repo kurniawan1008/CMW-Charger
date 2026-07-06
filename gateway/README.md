@@ -16,7 +16,8 @@ Wiring UART ESP32 (lihat firmware): GPIO4/5 ESP32 ↔ TX/RX Pi (`/dev/serial0`),
 ## Konfigurasi
 
 ```bash
-export SPKLU_WS_URL=ws://<ip-backend>:3001/ws/device
+export SPKLU_WS_URL=ws://<ip-backend>:3001/api/ws/device
+# Lewat Nginx produksi (proxy /api/ ke backend): ws://<domain-atau-ip>/api/ws/device
 export SPKLU_DEVICE_KEY=<device_key dari tabel devices>
 export SPKLU_SERIAL=/dev/serial0
 python3 gateway.py

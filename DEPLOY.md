@@ -8,9 +8,9 @@ VPS produksi dan menghubungkan gateway Raspberry Pi ke mesin ESP32.
 ```
 [ ESP32 mesin ] --UART--> [ Pi Zero 2W gateway ] --WSS--> [ VPS ]
                                                             ├── Nginx (443)
-                                                            │     ├── static SPA -> /var/www/spklu
-                                                            │     ├── /api/*  -> 127.0.0.1:3001
-                                                            │     └── /ws/*   -> 127.0.0.1:3001
+                                                            │     ├── static SPA  -> /var/www/spklu
+                                                            │     └── /api/*      -> 127.0.0.1:3001
+                                                            │           (REST + WS /api/ws/device, /api/ws/client)
                                                             ├── PM2 -> Node backend (:3001)
                                                             └── MySQL/MariaDB (:3306, localhost)
 ```
@@ -164,17 +164,22 @@ pm2 set pm2-logrotate:retain 7
 
 ### 3.1 Build frontend
 
+Backend mount semua route (REST + WS) di bawah prefix `/api` (lihat Nginx
+config di 3.3) — `VITE_API_URL` **wajib** diakhiri `/api`. WS URL diturunkan
+otomatis dari `VITE_API_URL` (`http→ws`, `https→wss`), tidak perlu variabel
+terpisah.
+
 ```bash
 cd /opt/spklu/spklu-frontend
 npm ci
-# Set backend URL untuk build (kosongkan kalau backend & frontend di domain sama)
-echo 'VITE_API_URL=/api' > .env.production
-echo 'VITE_WS_URL=wss://GANTI_DOMAIN/ws' >> .env.production
+# Domain/IP publik + akhiran /api (WAJIB — lihat catatan di atas)
+echo 'VITE_API_URL=https://GANTI_DOMAIN/api' > .env.production
+# Kalau belum ada domain, pakai IP: VITE_API_URL=http://IP_VPS/api
 npm run build
 ```
 
-> **Catatan:** kalau belum ada domain HTTPS, pakai `VITE_WS_URL=ws://IP_VPS/ws`.
-> Setelah TLS aktif nanti, rebuild frontend dengan `wss://`.
+> Setelah TLS aktif nanti (Tahap 4), ganti ke `https://domain/api` dan
+> rebuild — WS otomatis ikut jadi `wss://`.
 
 ### 3.2 Deploy static ke /var/www/spklu
 
@@ -211,8 +216,8 @@ sudo ufw enable
 
 Buka `http://IP_VPS/` di browser. Harusnya:
 - Login page SPKLU muncul (Design system Arus)
-- DevTools → Network → login → status 200 dari `/api/auth/login`
-- Setelah login, WS `/ws/client` upgrade **101 Switching Protocols**
+- DevTools → Network → login → status 200/201 dari `/api/auth/login`
+- Setelah login, WS `/api/ws/client` upgrade **101 Switching Protocols**
 
 ---
 
@@ -229,10 +234,11 @@ sudo systemctl reload nginx
 ```
 
 Setelah HTTPS aktif:
-1. Rebuild frontend: `VITE_WS_URL=wss://domain.anda/ws npm run build`
-2. Redeploy static: `sudo cp -r dist/* /var/www/spklu/`
-3. Update `.env` backend: `CORS_ORIGIN=https://domain.anda`
-4. `pm2 restart spklu-backend`
+1. Update `.env.production` frontend: `VITE_API_URL=https://domain.anda/api`
+2. Rebuild: `npm run build` (WS otomatis jadi `wss://` — diturunkan dari VITE_API_URL)
+3. Redeploy static: `sudo cp -r dist/* /var/www/spklu/`
+4. Update `.env` backend: `CORS_ORIGIN=https://domain.anda`
+5. `pm2 restart spklu-backend`
 
 Certbot memasang cron auto-renew otomatis. Cek: `sudo certbot renew --dry-run`.
 
