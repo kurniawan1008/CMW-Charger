@@ -10,7 +10,7 @@
 //                       SIM_POWER_W=1200, SIM_SPEEDUP=1, SIM_TRIAL_AFTER_S)
 import WebSocket from 'ws';
 
-const WS_URL = process.env.SIM_WS_URL || 'ws://127.0.0.1:3001/ws/device';
+const WS_URL = process.env.SIM_WS_URL || 'ws://127.0.0.1:3001/api/ws/device';
 const DEVICE_KEY = process.env.SIM_DEVICE_KEY || 'CHANGE_ME_DEVICE_KEY';
 const PRICE_PER_KWH = 2440; // sama dengan firmware
 const POWER_W = Number(process.env.SIM_POWER_W || 1200); // daya simulasi per channel

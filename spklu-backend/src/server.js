@@ -13,12 +13,14 @@ process.on('uncaughtException', (err) => console.error('[fatal-guard] uncaughtEx
 
 const server = http.createServer(app);
 
-// Dua endpoint WS di port yang sama: /ws/device (gateway Pi) & /ws/client (browser).
+// Dua endpoint WS di port yang sama, di bawah /api supaya Nginx dapat proxy
+// seluruh backend lewat satu location /api/ dan SPA React memakai path lain.
+//   /api/ws/device (gateway Pi) & /api/ws/client (browser).
 server.on('upgrade', (req, socket, head) => {
   try {
     const { pathname } = new URL(req.url, 'http://x');
-    if (pathname === '/ws/device') return handleDeviceUpgrade(req, socket, head);
-    if (pathname === '/ws/client') return handleClientUpgrade(req, socket, head);
+    if (pathname === '/api/ws/device') return handleDeviceUpgrade(req, socket, head);
+    if (pathname === '/api/ws/client') return handleClientUpgrade(req, socket, head);
     socket.destroy();
   } catch {
     socket.destroy();

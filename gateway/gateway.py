@@ -8,7 +8,7 @@ Backend mengirim {"type":"cmd","line":"$..."}  -> tulis line+"\n" ke serial.
 Setiap baris "#..." dari serial               -> kirim {"type":"line","line":...}.
 
 Konfigurasi via environment (atau file /etc/spklu-gateway.env di systemd):
-  SPKLU_WS_URL     ws://<backend>:3001/ws/device
+  SPKLU_WS_URL     ws://<backend>:3001/api/ws/device (via Nginx: ws://host/api/ws/device)
   SPKLU_DEVICE_KEY device_key dari tabel devices
   SPKLU_SERIAL     /dev/serial0 (UART GPIO) | /dev/ttyUSB0
   SPKLU_BAUD       115200
@@ -21,7 +21,7 @@ import sys
 import serial  # pyserial
 import websockets
 
-WS_URL = os.environ.get("SPKLU_WS_URL", "ws://127.0.0.1:3001/ws/device")
+WS_URL = os.environ.get("SPKLU_WS_URL", "ws://127.0.0.1:3001/api/ws/device")
 DEVICE_KEY = os.environ.get("SPKLU_DEVICE_KEY", "CHANGE_ME_DEVICE_KEY")
 SERIAL_PORT = os.environ.get("SPKLU_SERIAL", "/dev/serial0")
 BAUD = int(os.environ.get("SPKLU_BAUD", "115200"))

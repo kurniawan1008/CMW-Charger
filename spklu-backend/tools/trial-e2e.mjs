@@ -6,7 +6,7 @@
 import { execSync } from 'node:child_process';
 import WebSocket from 'ws';
 
-const API = process.env.API_URL || 'http://127.0.0.1:3001';
+const API = (process.env.API_URL || 'http://127.0.0.1:3001') + '/api';
 const WSC = API.replace('http', 'ws') + '/ws/client';
 const MYSQL = process.env.MYSQL_BIN || 'C:/xampp/mysql/bin/mysql.exe';
 const sql = (q) =>

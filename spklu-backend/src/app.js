@@ -16,15 +16,15 @@ app.use(express.json({ limit: '64kb' }));
 // Rate limit endpoint sensitif (audit M2): brute-force login & spam register/topup.
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
 const topupLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false });
-app.use('/auth', authLimiter);
-app.use('/user/topups', topupLimiter);
+app.use('/api/auth', authLimiter);
+app.use('/api/user/topups', topupLimiter);
 
-app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-app.use('/auth', authRouter);
-app.use('/user', userRouter);
-app.use('/', sessionsRouter); // /locations, /motors, /sessions, /price
-app.use('/admin', adminRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
+app.use('/api', sessionsRouter); // /api/locations, /api/motors, /api/sessions, /api/price
+app.use('/api/admin', adminRouter);
 
 app.use((_req, res) => res.status(404).json({ error: 'Endpoint tidak ditemukan' }));
 
