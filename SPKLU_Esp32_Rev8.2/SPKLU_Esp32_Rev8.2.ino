@@ -1343,6 +1343,20 @@ void uiEnterPage(uint8_t page) {
 // ===========================================================
 //                      COMMAND UTIL
 // ===========================================================
+// Ekstrak field ke-n (0-based) dari string CSV mulai dari startIdx.
+// Contoh: csvField("$X,1,2,3", 3, 1) -> "2". Return "" bila field ke-n
+// tidak ada (tidak cukup koma).
+static String csvField(const String& s, int startIdx, uint8_t n) {
+  int pos = startIdx;
+  for (uint8_t i = 0; i < n; i++) {
+    pos = s.indexOf(',', pos);
+    if (pos < 0) return "";
+    pos++;
+  }
+  int end = s.indexOf(',', pos);
+  return (end < 0) ? s.substring(pos) : s.substring(pos, end);
+}
+
 static inline bool parseChannel(const String& s, int startIdx, uint8_t &outC) {
   int chNum = s.substring(startIdx).toInt();
   if (chNum < 1 || chNum > 3) return false;
@@ -2057,6 +2071,81 @@ static void backendHandleLine(const String& ln) {
       if (activePage == (uint8_t)(c + 1)) uiSetMotorLabels(c);
     }
     Serial.println("#OK select");
+    return;
+  }
+
+  // $SETPARAM,<ch>,<slot>,<vset>,<iset>,<ocp>,<otp>,<lvp>
+  // Remote-write parameter elektrik satu slot M0-M9. Interlock CHARGING +
+  // validasi rentang identik dengan ADJ, (halaman Settings lokal) — supaya
+  // remote-write tidak bisa menulis nilai yang tak akan pernah lolos lewat
+  // jalur fisik. Balasan membawa JSON old+new untuk audit log backend.
+  if (ln.startsWith("$SETPARAM,")) {
+    int chNum  = csvField(ln, 10, 0).toInt();
+    int slot   = csvField(ln, 10, 1).toInt();
+    float vset = csvField(ln, 10, 2).toFloat();
+    float iset = csvField(ln, 10, 3).toFloat();
+    float ocp  = csvField(ln, 10, 4).toFloat();
+    int otp    = csvField(ln, 10, 5).toInt();
+    float lvp  = csvField(ln, 10, 6).toFloat();
+
+    if (chNum < 1 || chNum > 3 || slot < 0 || slot > 9) { Serial.println("#ERR setparam_arg"); return; }
+    uint8_t c = (uint8_t)(chNum - 1);
+    if (!chEnabled(c)) { Serial.println("#ERR ch_disabled"); return; }
+    if (ch[c].state == CHARGING) { Serial.println("#ERR ch_charging"); return; }
+
+    if (vset < 1.0f   || vset > 125.0f) { Serial.println("#ERR range_vset"); return; }
+    if (iset < 0.0f   || iset > 50.0f)  { Serial.println("#ERR range_iset"); return; }
+    if (ocp  < 0.1f   || ocp  > 52.0f)  { Serial.println("#ERR range_ocp");  return; }
+    if (otp  < 60     || otp  > 120)    { Serial.println("#ERR range_otp");  return; }
+    if (lvp  < 10.0f  || lvp  > 145.0f) { Serial.println("#ERR range_lvp");  return; }
+    if (ocp < iset) { Serial.println("#ERR ocp_lt_iset"); return; }
+
+    MotorProfile oldP = profiles[c][slot];
+
+    MotorProfile newP;
+    newP.label  = oldP.label; // nama tetap dikontrol lewat $SELECT, bukan di sini
+    newP.vset_V = vset; newP.iset_A = iset; newP.ocp_A = ocp;
+    newP.otp_C  = otp;  newP.lvp_V  = lvp;
+
+    xyEnableStage(c);
+    xySetOutput(c, false);
+    delay(SW_CLF_DELAY_MS);
+
+    bool okW = xyWriteGroup15(c, (uint8_t)slot, newP);
+    bool okV = okW ? xyVerifyGroup(c, (uint8_t)slot, newP) : false;
+    if (!okW || !okV) { Serial.println("#ERR setparam_write_failed"); return; }
+
+    profiles[c][slot] = newP;
+    saveProfileToNVS(c, (uint8_t)slot);
+    if (ch[c].motorIdx == (uint8_t)slot) xyReadBlock(c);
+
+    char cb[220];
+    snprintf(cb, sizeof(cb),
+      "#OK setparam {\"ch\":%d,\"slot\":%d,"
+      "\"old\":{\"vset\":%.2f,\"iset\":%.2f,\"ocp\":%.2f,\"otp\":%d,\"lvp\":%.2f},"
+      "\"new\":{\"vset\":%.2f,\"iset\":%.2f,\"ocp\":%.2f,\"otp\":%d,\"lvp\":%.2f}}",
+      chNum, slot, oldP.vset_V, oldP.iset_A, oldP.ocp_A, oldP.otp_C, oldP.lvp_V,
+      newP.vset_V, newP.iset_A, newP.ocp_A, newP.otp_C, newP.lvp_V);
+    Serial.println(cb);
+    return;
+  }
+
+  // $GETPARAM,<ch>,<slot> — baca nilai tersimpan satu slot (read-only, untuk
+  // prefill form admin sebelum $SETPARAM).
+  if (ln.startsWith("$GETPARAM,")) {
+    int chNum = csvField(ln, 10, 0).toInt();
+    int slot  = csvField(ln, 10, 1).toInt();
+    if (chNum < 1 || chNum > 3 || slot < 0 || slot > 9) { Serial.println("#ERR getparam_arg"); return; }
+    uint8_t c = (uint8_t)(chNum - 1);
+    if (!chEnabled(c)) { Serial.println("#ERR ch_disabled"); return; }
+
+    const auto &p = profiles[c][slot];
+    char cb[200];
+    snprintf(cb, sizeof(cb),
+      "#OK getparam {\"ch\":%d,\"slot\":%d,\"label\":\"%s\","
+      "\"vset\":%.2f,\"iset\":%.2f,\"ocp\":%.2f,\"otp\":%d,\"lvp\":%.2f}",
+      chNum, slot, p.label.c_str(), p.vset_V, p.iset_A, p.ocp_A, p.otp_C, p.lvp_V);
+    Serial.println(cb);
     return;
   }
 
