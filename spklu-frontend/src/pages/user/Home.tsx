@@ -26,7 +26,7 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-5">
       {/* Kartu saldo — hero pribadi */}
-      <section className="rise-in relative overflow-hidden rounded-card bg-grad-deep p-6 text-white shadow-raise">
+      <section className="rise-in shine relative overflow-hidden rounded-card bg-grad-deep p-6 text-white shadow-raise">
         <div className="aurora right-[-30%] top-[-60%] h-64 w-64" style={{ background: 'rgba(56,189,248,0.35)' }} />
         <div className="soft-float absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur">
           <Zap size={19} className="fill-sky-400 text-sky-400" />
