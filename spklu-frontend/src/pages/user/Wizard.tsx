@@ -15,6 +15,8 @@ import { CountUp, CurrentLine, FlowLink, ProgressRing, Sparkline } from '../../c
 import { BoltRain, Confetti } from '../../components/motion';
 import { useToast } from '../../components/overlay';
 import type { Charger, Location, MotorProfile, SessionFinal, SessionTick } from '../../lib/types';
+import { LocationMiniMap } from '../../components/LocationMiniMap';
+import { LocationsOverviewMap } from '../../components/LocationsOverviewMap';
 
 const STEPS = ['Lokasi', 'Charger', 'Motor', 'Jumlah', 'Konfirmasi'];
 const PRICE_FALLBACK = 2440;
@@ -50,6 +52,10 @@ export default function Wizard() {
   const [finalResult, setFinalResult] = useState<SessionFinal | null>(null);
   const toast = useToast();
   const stepTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const scrollToLocation = (id: number) => {
+    cardRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const go = (n: number) => { setDir(n > step ? 1 : -1); setStep(n); };
 
@@ -213,11 +219,13 @@ export default function Wizard() {
           {/* ===== 1. Lokasi ===== */}
           {step === 1 && (
             <div className="flex flex-col gap-2.5">
+              <LocationsOverviewMap locations={locations} onSelectPin={scrollToLocation} />
               {locations.map((loc, i) => (
                 // div ber-role button (bukan <button>) karena berisi <a> ke Maps —
                 // elemen interaktif tidak boleh bersarang.
                 <div
                   key={loc.id}
+                  ref={(el) => { cardRefs.current[loc.id] = el; }}
                   role="button"
                   tabIndex={loc.status === 'OFFLINE' ? -1 : 0}
                   onClick={() => { if (loc.status !== 'OFFLINE') { setSelLocation(loc); setSelCharger(null); go(2); } }}
@@ -246,6 +254,9 @@ export default function Wizard() {
                       >
                         <ExternalLink size={11} /> Lihat di Maps
                       </a>
+                      <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+                        <LocationMiniMap lat={loc.lat} lng={loc.lng} />
+                      </div>
                     </div>
                     {loc.available_chargers > 0
                       ? <Badge tone="energy" pulse>{loc.available_chargers} siap</Badge>
