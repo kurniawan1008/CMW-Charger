@@ -96,7 +96,7 @@ export async function startSession({ userId, channelId, motorProfileId, mode, ta
     const st = getDevice(channel.dev_id)?.lastState?.ch?.find((x) => x.ch === ch)?.st;
     if (st === CH_STATE.DONE) await sendToDevice(channel.dev_id, buildClear(ch));
 
-    await sendToDevice(channel.dev_id, buildSelect(ch, profile.fw_slot));
+    await sendToDevice(channel.dev_id, buildSelect(ch, profile.fw_slot, `${profile.brand} ${profile.model}`));
     await sendToDevice(channel.dev_id, buildAuth(ch, sid, limitType, limitValue));
     await sendToDevice(channel.dev_id, buildStart(ch));
   } catch (err) {
