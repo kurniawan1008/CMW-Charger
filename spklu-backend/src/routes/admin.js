@@ -4,7 +4,8 @@ import { query, withTx } from '../db.js';
 import { authRequired, requireAdmin, requireSuperadmin } from '../auth/jwt.js';
 import { paginate } from './helpers.js';
 import { notify } from '../realtime/clientHub.js';
-import { isDeviceOnline } from '../realtime/deviceHub.js';
+import { isDeviceOnline, sendToDevice } from '../realtime/deviceHub.js';
+import { buildGetParam, buildSetParam } from '../services/commands.js';
 import { config } from '../config.js';
 
 export const adminRouter = Router();
@@ -198,6 +199,67 @@ adminRouter.post('/channels/:id/maintenance', async (req, res, next) => {
     await query('UPDATE channels SET maintenance=?, status=? WHERE id=?',
       [on ? 1 : 0, on ? 'OFFLINE' : 'READY', req.params.id]);
     res.json({ ok: true, maintenance: on });
+  } catch (err) { next(err); }
+});
+
+// ===== Parameter Motor per-slot (SUPERADMIN) — remote V/I write =====
+adminRouter.get('/channels/:id/params/:slot', requireSuperadmin, async (req, res, next) => {
+  try {
+    const slot = Number(req.params.slot);
+    const [chn] = await query(
+      `SELECT c.device_ch, d.id AS device_id FROM channels c
+       JOIN devices d ON d.id = c.device_id WHERE c.id = ?`,
+      [req.params.id],
+    );
+    if (!chn) return res.status(404).json({ error: 'Channel tidak ditemukan' });
+
+    let line;
+    try { line = buildGetParam(chn.device_ch, slot); }
+    catch (err) { return res.status(400).json({ error: err.message }); }
+
+    const reply = await sendToDevice(chn.device_id, line);
+    res.json(JSON.parse(reply.slice('#OK getparam '.length)));
+  } catch (err) { next(err); }
+});
+
+adminRouter.post('/channels/:id/params', requireSuperadmin, async (req, res, next) => {
+  try {
+    const { slot, vset, iset, ocp, otp, lvp } = req.body || {};
+    const [chn] = await query(
+      `SELECT c.device_ch, c.status, d.id AS device_id FROM channels c
+       JOIN devices d ON d.id = c.device_id WHERE c.id = ?`,
+      [req.params.id],
+    );
+    if (!chn) return res.status(404).json({ error: 'Channel tidak ditemukan' });
+    if (chn.status === 'CHARGING') {
+      return res.status(409).json({ error: 'Tidak bisa ubah parameter saat channel sedang CHARGING' });
+    }
+
+    let line;
+    try { line = buildSetParam(chn.device_ch, Number(slot), { vset, iset, ocp, otp, lvp }); }
+    catch (err) { return res.status(400).json({ error: err.message }); }
+
+    let reply;
+    try {
+      reply = await sendToDevice(chn.device_id, line);
+    } catch (err) {
+      await query(
+        `INSERT INTO motor_param_audit_log
+           (admin_user_id, device_id, channel, fw_slot, old_values, new_values, result)
+         VALUES (?,?,?,?,NULL,?,'FAILED')`,
+        [req.user.id, chn.device_id, chn.device_ch, slot, JSON.stringify({ vset, iset, ocp, otp, lvp })],
+      );
+      return res.status(502).json({ error: `Mesin menolak: ${err.message}` });
+    }
+
+    const json = JSON.parse(reply.slice('#OK setparam '.length));
+    await query(
+      `INSERT INTO motor_param_audit_log
+         (admin_user_id, device_id, channel, fw_slot, old_values, new_values, result)
+       VALUES (?,?,?,?,?,?,'OK')`,
+      [req.user.id, chn.device_id, chn.device_ch, slot, JSON.stringify(json.old), JSON.stringify(json.new)],
+    );
+    res.json(json);
   } catch (err) { next(err); }
 });
 
