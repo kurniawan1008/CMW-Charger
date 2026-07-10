@@ -11,12 +11,16 @@ function assertChannel(ch) {
   }
 }
 
-export function buildSelect(ch, fwSlot) {
+export function buildSelect(ch, fwSlot, name) {
   assertChannel(ch);
   if (!Number.isInteger(fwSlot) || fwSlot < 0 || fwSlot > 9) {
     throw new Error(`fw_slot harus 0..9, dapat: ${fwSlot}`);
   }
-  return `$SELECT,${ch},${fwSlot}`;
+  if (!name) return `$SELECT,${ch},${fwSlot}`;
+  // Sanitasi: koma memecah parsing CSV firmware, kutip bisa merusak string
+  // Nextion; truncate supaya muat di lebar tombol b_mX pada layar HMI.
+  const safe = String(name).replace(/[,"]/g, '').slice(0, 24).trim();
+  return safe ? `$SELECT,${ch},${fwSlot},${safe}` : `$SELECT,${ch},${fwSlot}`;
 }
 
 export function buildAuth(ch, sessionId, limitType, limitValue) {

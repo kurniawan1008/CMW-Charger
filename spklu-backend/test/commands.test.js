@@ -36,6 +36,16 @@ test('perintah sederhana valid', () => {
   assert.equal(buildClear(1), '$CLEAR,1');
 });
 
+test('buildSelect menyertakan nama motor tersanitasi', () => {
+  assert.equal(buildSelect(2, 7, 'Honda ICON-e'), '$SELECT,2,7,Honda ICON-e');
+  assert.equal(buildSelect(1, 0, 'Motor, "Aneh"'), '$SELECT,1,0,Motor Aneh');
+  assert.equal(buildSelect(1, 0, ''), '$SELECT,1,0');
+  assert.equal(buildSelect(1, 0), '$SELECT,1,0');
+
+  const long = 'A'.repeat(40);
+  assert.equal(buildSelect(1, 0, long), '$SELECT,1,0,' + 'A'.repeat(24));
+});
+
 test('mapping ChState firmware -> status channel DB', () => {
   assert.equal(chStateToStatus(CH_STATE.IDLE), 'READY');
   assert.equal(chStateToStatus(CH_STATE.SELECT), 'READY');
