@@ -7,12 +7,15 @@ interface ParamValues { vset: number; iset: number; ocp: number; otp: number; lv
 interface GetParamResponse extends ParamValues { ch: number; slot: number; label: string }
 interface SetParamResponse { ch: number; slot: number; old: ParamValues; new: ParamValues }
 
-const FIELDS: { key: keyof ParamValues; label: string; unit: string; step: string }[] = [
-  { key: 'vset', label: 'V-SET', unit: 'V', step: '0.01' },
-  { key: 'iset', label: 'I-SET', unit: 'A', step: '0.01' },
-  { key: 'ocp', label: 'OCP', unit: 'A', step: '0.01' },
-  { key: 'otp', label: 'OTP', unit: '°C', step: '1' },
-  { key: 'lvp', label: 'LVP', unit: 'V', step: '0.01' },
+// Rentang identik dengan validasi backend (spklu-backend/src/routes/admin.js)
+// dan firmware ($SETPARAM di SPKLU_Esp32_Rev8.2.ino) — kalau salah satu
+// berubah, samakan ketiganya.
+const FIELDS: { key: keyof ParamValues; label: string; unit: string; step: string; min: number; max: number }[] = [
+  { key: 'vset', label: 'V-SET', unit: 'V', step: '0.01', min: 1, max: 125 },
+  { key: 'iset', label: 'I-SET', unit: 'A', step: '0.01', min: 0, max: 50 },
+  { key: 'ocp', label: 'OCP', unit: 'A', step: '0.01', min: 0.1, max: 52 },
+  { key: 'otp', label: 'OTP', unit: '°C', step: '1', min: 60, max: 120 },
+  { key: 'lvp', label: 'LVP', unit: 'V', step: '0.01', min: 10, max: 145 },
 ];
 
 export function MotorParamsModal({
@@ -39,6 +42,27 @@ export function MotorParamsModal({
       .catch((err) => toast('err', err instanceof Error ? err.message : 'Gagal baca parameter'))
       .finally(() => setLoading(false));
   }, [open, slot, channelId]);
+
+  const validate = (v: ParamValues): string | null => {
+    for (const f of FIELDS) {
+      const val = v[f.key];
+      if (Number.isNaN(val) || val < f.min || val > f.max) {
+        return `${f.label} harus di antara ${f.min} dan ${f.max} ${f.unit}.`;
+      }
+    }
+    if (v.ocp < v.iset) return 'OCP harus lebih besar atau sama dengan I-SET.';
+    return null;
+  };
+
+  const openConfirm = () => {
+    if (!form) return;
+    const err = validate(form);
+    if (err) {
+      toast('err', err);
+      return;
+    }
+    setConfirming(true);
+  };
 
   const save = async () => {
     if (!form) return;
@@ -74,6 +98,8 @@ export function MotorParamsModal({
                 label={`${f.label} (${f.unit})`}
                 type="number"
                 step={f.step}
+                min={f.min}
+                max={f.max}
                 value={form[f.key]}
                 onChange={(e) => setForm({ ...form, [f.key]: Number(e.target.value) })}
               />
@@ -83,7 +109,7 @@ export function MotorParamsModal({
 
         <div className="mt-6 flex justify-end gap-2.5">
           <Button variant="ghost" onClick={onClose}>Batal</Button>
-          <Button variant="primary" disabled={!form} onClick={() => setConfirming(true)}>
+          <Button variant="primary" disabled={!form} onClick={openConfirm}>
             Simpan
           </Button>
         </div>
