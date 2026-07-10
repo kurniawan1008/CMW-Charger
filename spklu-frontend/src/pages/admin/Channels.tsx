@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Wrench } from 'lucide-react';
+import { Wrench, SlidersHorizontal } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Badge } from '../../components/ui';
 import { ConfirmDialog, useToast } from '../../components/overlay';
 import { PageHeader, Table, Pager } from './shared';
 import { useTopic } from '../../lib/ws';
+import { useAuth } from '../../lib/auth';
+import { MotorParamsModal } from './MotorParamsModal';
 import type { Paged } from '../../lib/types';
 
 interface ChannelRow {
@@ -26,6 +28,8 @@ export default function Channels() {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Paged<ChannelRow> | null>(null);
   const [confirming, setConfirming] = useState<ChannelRow | null>(null);
+  const [editingParams, setEditingParams] = useState<ChannelRow | null>(null);
+  const { user } = useAuth();
 
   const load = () =>
     api.get<Paged<ChannelRow>>(`/admin/channels?page=${page}&limit=15`).then(setResult).catch(() => {});
@@ -64,14 +68,26 @@ export default function Channels() {
               </td>
               <td className="px-4 py-3 font-mono text-[11.5px] text-ink-400">{ch.current_session_id || '—'}</td>
               <td className="px-4 py-3">
-                <button
-                  onClick={() => (ch.maintenance ? toggleMaintenance(ch) : setConfirming(ch))}
-                  disabled={!ch.maintenance && ch.status === 'CHARGING'}
-                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${ch.maintenance ? 'bg-energy-50 text-energy-700 hover:bg-energy-100' : 'bg-surface-sunken text-ink-600 hover:bg-amber-100 hover:text-amber-700'}`}
-                >
-                  <Wrench size={13} />
-                  {ch.maintenance ? 'Aktifkan lagi' : 'Maintenance'}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => (ch.maintenance ? toggleMaintenance(ch) : setConfirming(ch))}
+                    disabled={!ch.maintenance && ch.status === 'CHARGING'}
+                    className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${ch.maintenance ? 'bg-energy-50 text-energy-700 hover:bg-energy-100' : 'bg-surface-sunken text-ink-600 hover:bg-amber-100 hover:text-amber-700'}`}
+                  >
+                    <Wrench size={13} />
+                    {ch.maintenance ? 'Aktifkan lagi' : 'Maintenance'}
+                  </button>
+                  {user?.role === 'SUPERADMIN' && (
+                    <button
+                      onClick={() => setEditingParams(ch)}
+                      disabled={ch.status === 'CHARGING'}
+                      className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-surface-sunken px-3 py-2 text-[12px] font-bold text-ink-600 transition-colors hover:bg-cmw-100 hover:text-cmw-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <SlidersHorizontal size={13} />
+                      Parameter Motor
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           );
@@ -88,6 +104,15 @@ export default function Channels() {
         confirmLabel="Ya, maintenance"
         danger
       />
+
+      {editingParams && (
+        <MotorParamsModal
+          channelId={editingParams.id}
+          channelLabel={`CH ${editingParams.device_ch} — ${editingParams.machine_name ?? 'mesin'}`}
+          open={editingParams !== null}
+          onClose={() => setEditingParams(null)}
+        />
+      )}
     </div>
   );
 }
