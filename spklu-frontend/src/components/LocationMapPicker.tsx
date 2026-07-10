@@ -1,6 +1,6 @@
 // Peta interaktif untuk form Tambah/Edit Lokasi admin — klik atau geser
 // marker mengisi lat/lng; search box (Nominatim) untuk lompat ke alamat.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import type { LeafletMouseEvent } from 'leaflet';
 import type L from 'leaflet';
@@ -24,9 +24,13 @@ function ClickHandler({ onChange }: { onChange: (lat: number, lng: number) => vo
 
 // Terpisah dari komponen utama supaya useMap() hanya dipanggil saat
 // benar-benar perlu fly-to (setelah hasil search alamat), bukan tiap render.
-function FlyTo({ lat, lng }: { lat: number; lng: number }) {
+function FlyTo({ lat, lng, onDone }: { lat: number; lng: number; onDone: () => void }) {
   const map = useMap();
-  map.flyTo([lat, lng], 15, { duration: 0.6 });
+  useEffect(() => {
+    map.flyTo([lat, lng], 15, { duration: 0.6 });
+    onDone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lat, lng]);
   return null;
 }
 
@@ -93,7 +97,9 @@ export function LocationMapPicker({ lat, lng, onChange }: LocationMapPickerProps
             }}
           />
           <ClickHandler onChange={onChange} />
-          {flyTarget && <FlyTo lat={flyTarget.lat} lng={flyTarget.lng} />}
+          {flyTarget && (
+            <FlyTo lat={flyTarget.lat} lng={flyTarget.lng} onDone={() => setFlyTarget(null)} />
+          )}
         </MapContainer>
       </div>
       <p className="text-[11px] text-ink-400">Klik peta atau geser marker untuk pilih titik lokasi.</p>
