@@ -66,6 +66,17 @@ static const uint32_t BACKEND_TELEMETRY_MS  = 2000;
 // false = OFFLINE/FREE, true = ONLINE/PAYMENT
 static bool requireAuth = false;
 
+// Part A — pemisahan otoritas pilih motor (web vs HMI fisik):
+//  - selectFromBackend: true HANYA selama backendHandleLine() memanggil
+//    handleCmd("SEL,...") atas nama $SELECT dari web. Dipakai blok SEL,
+//    di handleCmd() untuk membedakan tombol Nextion lokal dari relay
+//    backend, TANPA mengubah signature fungsi yang sudah ada.
+//  - webMotorName[3]: override kosmetik nama tombol per channel, RAM saja
+//    (bukan NVS) — TIDAK PERNAH menimpa profiles[c][m].label yang dipakai
+//    halaman Settings teknisi. Kosong = pakai label default firmware.
+static bool selectFromBackend = false;
+static String webMotorName[3] = {"", "", ""};
+
 // Slave IDs for 3 channels
 // NOTE: set to 0 to disable a channel in firmware.
 static const uint8_t SLAVE_ID[3] = {1, 2, 3};
@@ -1121,7 +1132,11 @@ void uiHighlightMotor(uint8_t motorIdx) {
 
 void uiSetMotorLabels(uint8_t c) {
   for(int i=0;i<10;i++){
-    nxSendCmd("b_m"+String(i)+".txt=\""+profiles[c][i].label+"\"");
+    // Slot yang sedang aktif pakai nama dari web (webMotorName) kalau ada;
+    // 9 slot lain (bukan pilihan aktif) selalu pakai label asli firmware.
+    String label = (i == ch[c].motorIdx && webMotorName[c].length())
+      ? webMotorName[c] : profiles[c][i].label;
+    nxSendCmd("b_m"+String(i)+".txt=\""+label+"\"");
     delay(1);
   }
 }
@@ -1159,7 +1174,9 @@ void uiUpdateMonitor() {
     const char* pref_s = (c==0) ? "t1_" : (c==1) ? "t2_" : "t3_";
 
     snprintf(buf, sizeof(buf), "%s%s", pref_s, "mot.txt=\"");
-    String mcmd = String(buf) + profiles[c][ch[c].motorIdx].label + "\"";
+    String motLabel = webMotorName[c].length()
+      ? webMotorName[c] : profiles[c][ch[c].motorIdx].label;
+    String mcmd = String(buf) + motLabel + "\"";
     nxSendCmd(mcmd);
 
     String st;
@@ -1639,11 +1656,22 @@ ch[c].done_sec = 0;
     if (ch[c].state == CHARGING) { setChanMsg(c, "STOP dulu (OUTPUT ON)", 0xFCA0); return; }
     if (ch[c].state == FAULT)    { setChanMsg(c, "FAULT - tekan CLEAR", 0xFCA0); return; }
 
+    // Command lokal (tombol Nextion) diblokir saat mode ONLINE — satu-
+    // satunya sumber pilihan motor jadi aplikasi web selama requireAuth
+    // aktif. Command dari backend (selectFromBackend=true) selalu lolos.
+    if (requireAuth && !selectFromBackend) {
+      setChanMsg(c, "Pilih motor via aplikasi", 0xFCA0);
+      return;
+    }
+
     if (xySelectDataSet(c, (uint8_t)mIdx)) {
       ch[c].motorIdx = (uint8_t)mIdx;
+      // Pilihan lokal (OFFLINE mode) selalu pakai label asli — bukan sisa
+      // override dari sesi web sebelumnya.
+      if (!selectFromBackend) webMotorName[c] = "";
       ch[c].state = SELECT;
       if (xyReadBlock(c)) resetSession(c);
-      if (activePage == (uint8_t)(c+1)) uiHighlightMotor(ch[c].motorIdx);
+      if (activePage == (uint8_t)(c+1)) { uiHighlightMotor(ch[c].motorIdx); uiSetMotorLabels(c); }
       uiMsg("PROFILE SELECTED", 0xAD97);
     } else {
       uiMsg("SELECT FAILED", 0xF9C6);
@@ -1984,14 +2012,32 @@ static void backendHandleLine(const String& ln) {
     return;
   }
 
-  // $SELECT,<ch>,<m>
+  // $SELECT,<ch>,<m>[,<name>] — name opsional: label tampilan dari katalog
+  // web, override kosmetik tombol Nextion (webMotorName[]). Parameter
+  // elektrik TIDAK dikirim di sini — itu murni dari slot NVS lokal (m).
   if (ln.startsWith("$SELECT,")) {
     int p1 = ln.indexOf(',', 8);
     if (p1 < 0) { Serial.println("#ERR sel_format"); return; }
+    int p2 = ln.indexOf(',', p1 + 1); // -1 kalau nama tidak dikirim
+    String mPart = (p2 < 0) ? ln.substring(p1 + 1) : ln.substring(p1 + 1, p2);
     int chNum = ln.substring(8, p1).toInt();
-    int mIdx  = ln.substring(p1 + 1).toInt();
+    int mIdx  = mPart.toInt();
     if (chNum < 1 || chNum > 3 || mIdx < 0 || mIdx > 9) { Serial.println("#ERR sel_arg"); return; }
+    uint8_t c = (uint8_t)(chNum - 1);
+    String name = (p2 >= 0) ? ln.substring(p2 + 1) : "";
+
+    selectFromBackend = true;
     handleCmd("SEL," + String(chNum) + "," + String(mIdx));
+    selectFromBackend = false;
+
+    // Terapkan override HANYA kalau seleksi di atas benar-benar sukses
+    // (state==SELECT & motorIdx cocok — interlock CHARGING/FAULT tidak
+    // mengubah motorIdx sama sekali, jadi override tidak boleh ikut ter-set
+    // untuk seleksi yang sebenarnya ditolak).
+    if (ch[c].state == SELECT && ch[c].motorIdx == (uint8_t)mIdx) {
+      webMotorName[c] = name;
+      if (activePage == (uint8_t)(c + 1)) uiSetMotorLabels(c);
+    }
     Serial.println("#OK select");
     return;
   }
