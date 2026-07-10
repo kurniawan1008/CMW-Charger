@@ -3,12 +3,21 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../../components/ui';
 
-export function PageHeader({ title, sub, action }: { title: string; sub?: string; action?: ReactNode }) {
+export function PageHeader({ title, sub, action, icon }: {
+  title: string; sub?: string; action?: ReactNode; icon?: ReactNode;
+}) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="font-display text-[22px] font-extrabold tracking-tight">{title}</h1>
-        {sub && <p className="mt-0.5 text-[13px] text-ink-400">{sub}</p>}
+      <div className="flex items-center gap-3">
+        {icon && (
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-grad-deep text-white shadow-glow">
+            {icon}
+          </span>
+        )}
+        <div>
+          <h1 className="font-display text-[22px] font-extrabold tracking-tight">{title}</h1>
+          {sub && <p className="mt-0.5 text-[13px] text-ink-400">{sub}</p>}
+        </div>
       </div>
       {action}
     </div>
