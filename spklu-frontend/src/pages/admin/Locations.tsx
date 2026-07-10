@@ -6,6 +6,7 @@ import { Button, Field, Badge } from '../../components/ui';
 import { Modal, useToast } from '../../components/overlay';
 import { PageHeader, SearchBox, Table, Pager, useDebounced } from './shared';
 import type { Paged } from '../../lib/types';
+import { LocationMapPicker } from '../../components/LocationMapPicker';
 
 interface StationRow {
   id: number; name: string; address: string; city: string;
@@ -37,7 +38,7 @@ export default function Locations() {
     const f = new FormData(e.currentTarget);
     const body = {
       name: f.get('name'), address: f.get('address'), city: f.get('city'),
-      lat: Number(f.get('lat')), lng: Number(f.get('lng')),
+      lat, lng,
       power_kw: Number(f.get('power_kw')) || 7, hours: f.get('hours') || '24 Jam',
       ...(editing !== 'new' ? { status: f.get('status') } : {}),
     };
@@ -53,6 +54,15 @@ export default function Locations() {
   };
 
   const cur = editing !== 'new' && editing ? editing : null;
+  const [lat, setLat] = useState(cur?.lat ?? -6.2088); // default: Jakarta
+  const [lng, setLng] = useState(cur?.lng ?? 106.8456);
+
+  useEffect(() => {
+    if (editing !== null) {
+      setLat(cur?.lat ?? -6.2088);
+      setLng(cur?.lng ?? 106.8456);
+    }
+  }, [editing]);
 
   return (
     <div>
@@ -119,8 +129,17 @@ export default function Locations() {
               </select>
             </div>
           )}
-          <Field label="Latitude" name="lat" type="number" step="any" required defaultValue={cur?.lat} hint="Contoh: -6.2249350" />
-          <Field label="Longitude" name="lng" type="number" step="any" required defaultValue={cur?.lng} hint="Contoh: 106.8092040" />
+          <LocationMapPicker lat={lat} lng={lng} onChange={(newLat, newLng) => { setLat(newLat); setLng(newLng); }} />
+          <Field
+            label="Latitude" name="lat" type="number" step="any" required
+            value={lat} onChange={(e) => setLat(Number(e.target.value) || 0)}
+            hint="Klik peta di atas, atau ketik manual"
+          />
+          <Field
+            label="Longitude" name="lng" type="number" step="any" required
+            value={lng} onChange={(e) => setLng(Number(e.target.value) || 0)}
+            hint="Klik peta di atas, atau ketik manual"
+          />
           <Field label="Daya (kW)" name="power_kw" type="number" defaultValue={cur?.power_kw ?? 7} />
           <Field label="Jam operasional" name="hours" defaultValue={cur?.hours ?? '24 Jam'} />
           <div className="col-span-2 mt-1 flex justify-end gap-2.5">
