@@ -217,7 +217,12 @@ adminRouter.get('/channels/:id/params/:slot', requireSuperadmin, async (req, res
     try { line = buildGetParam(chn.device_ch, slot); }
     catch (err) { return res.status(400).json({ error: err.message }); }
 
-    const reply = await sendToDevice(chn.device_id, line);
+    let reply;
+    try {
+      reply = await sendToDevice(chn.device_id, line);
+    } catch (err) {
+      return res.status(502).json({ error: `Mesin tidak merespons: ${err.message}` });
+    }
     res.json(JSON.parse(reply.slice('#OK getparam '.length)));
   } catch (err) { next(err); }
 });
@@ -247,17 +252,34 @@ adminRouter.post('/channels/:id/params', requireSuperadmin, async (req, res, nex
         `INSERT INTO motor_param_audit_log
            (admin_user_id, device_id, channel, fw_slot, old_values, new_values, result)
          VALUES (?,?,?,?,NULL,?,'FAILED')`,
-        [req.user.id, chn.device_id, chn.device_ch, slot, JSON.stringify({ vset, iset, ocp, otp, lvp })],
+        [req.user.id, chn.device_id, chn.device_ch, Number(slot), JSON.stringify({ vset, iset, ocp, otp, lvp })],
       );
       return res.status(502).json({ error: `Mesin menolak: ${err.message}` });
     }
 
-    const json = JSON.parse(reply.slice('#OK setparam '.length));
+    let json;
+    try {
+      json = JSON.parse(reply.slice('#OK setparam '.length));
+    } catch (parseErr) {
+      // Firmware balas #OK berarti write+verify+NVS SUDAH terjadi di mesin, tapi
+      // payload konfirmasi tak bisa di-parse. Audit WAJIB tetap tercatat (mesin
+      // sudah berubah) — pakai nilai yang dikirim admin; old tak diketahui.
+      await query(
+        `INSERT INTO motor_param_audit_log
+           (admin_user_id, device_id, channel, fw_slot, old_values, new_values, result)
+         VALUES (?,?,?,?,NULL,?,'OK')`,
+        [req.user.id, chn.device_id, chn.device_ch, Number(slot), JSON.stringify({ vset, iset, ocp, otp, lvp })],
+      );
+      return res.status(500).json({
+        error: 'Parameter kemungkinan sudah diterapkan ke mesin, tetapi konfirmasi tidak terbaca. Cek via GET params untuk verifikasi.',
+      });
+    }
+
     await query(
       `INSERT INTO motor_param_audit_log
          (admin_user_id, device_id, channel, fw_slot, old_values, new_values, result)
        VALUES (?,?,?,?,?,?,'OK')`,
-      [req.user.id, chn.device_id, chn.device_ch, slot, JSON.stringify(json.old), JSON.stringify(json.new)],
+      [req.user.id, chn.device_id, chn.device_ch, Number(slot), JSON.stringify(json.old), JSON.stringify(json.new)],
     );
     res.json(json);
   } catch (err) { next(err); }
