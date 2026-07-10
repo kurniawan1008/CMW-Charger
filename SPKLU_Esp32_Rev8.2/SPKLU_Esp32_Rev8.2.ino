@@ -817,6 +817,7 @@ void goDone(uint8_t c, const char *reason = "session_stop") {
   // channel langsung CHARGING lagi TANPA otorisasi baru — padahal backend sudah
   // menutup & me-refund sesi itu (celah charging gratis pasca-refund).
   ch[c].authorized = false;
+  webMotorName[c]  = "";
   ch[c].limitType  = 0;
   backendEmitSession(c, reason);
 }
@@ -845,6 +846,7 @@ void goCabutKabel(uint8_t c) {
   ch[c].state     = DONE;
   // BUGFIX (security/billing): kabel dicabut -> sesi berakhir, cabut otorisasi.
   ch[c].authorized = false;
+  webMotorName[c]  = "";
   ch[c].limitType  = 0;
 
   char buf[64];
@@ -966,6 +968,7 @@ void checkOverTemp(uint8_t c) {
     ch[c].ocpState  = Channel::OCP_NONE;
     ch[c].ocpRetryCount = 0;
     ch[c].authorized = false;
+    webMotorName[c]  = "";
     ch[c].limitType  = 0;
     ch[c].state = DONE;
     setChanMsg(c, "STOP: suhu terlalu tinggi", 0xF9C6, 6000);
@@ -1621,6 +1624,7 @@ ch[c].settingOpen = true;
 
   // ===== Phase 2: Wipe sesi berbayar (siap untuk $AUTH berikutnya) =====
   ch[c].authorized   = false;
+  webMotorName[c]    = "";
   ch[c].sessionId[0] = '\0';
   ch[c].limitType    = 0;
   ch[c].limitKwh     = 0.0f;
@@ -1789,6 +1793,7 @@ void doStopChannel(uint8_t c) {
   ch[c].state = DONE;
   // BUGFIX (security/billing): e-stop mengakhiri sesi -> cabut otorisasi berbayar.
   ch[c].authorized = false;
+  webMotorName[c]  = "";
   ch[c].limitType  = 0;
   uiMsg("CHARGING COMPLETE", 0x362B);
   if (getActivePage() == (uint8_t)(c + 1))
@@ -1943,6 +1948,7 @@ void backendCheckSessionLimit(uint8_t c) {
   ch[c].state    = DONE;
   // BUGFIX (security/billing): kuota habis -> cabut otorisasi (auth sekali pakai).
   ch[c].authorized = false;
+  webMotorName[c]  = "";
   ch[c].limitType  = 0;
   setChanMsg(c, "Kuota tercapai - Sesi selesai", 0x362B, 6000);
   backendEmitSession(c, "session_complete");
@@ -2017,6 +2023,7 @@ static void backendHandleLine(const String& ln) {
     if (!parseChannel(ln, 8, c)) { Serial.println("#ERR bad_ch"); return; }
     if (!chEnabled(c)) { Serial.println("#ERR ch_disabled"); return; }
     ch[c].authorized = false;
+    webMotorName[c]  = "";
     ch[c].sessionId[0] = '\0';
     ch[c].limitType = 0; ch[c].limitReached = false;
     Serial.println("#OK deauth");
