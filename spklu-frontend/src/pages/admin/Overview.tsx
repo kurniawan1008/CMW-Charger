@@ -75,7 +75,8 @@ export default function Overview() {
       {/* Stat cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
         {stats.map((s, i) => (
-          <Card key={s.label} className="rise-in" style={{ animationDelay: `${i * 50}ms` }}>
+          <Card key={s.label} className="rise-in relative overflow-hidden" style={{ animationDelay: `${i * 50}ms` }}>
+            <div className="absolute inset-x-0 top-0 h-1 bg-grad-energy" />
             <div className="mb-3 flex items-center justify-between">
               <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.tint}`}>
                 <s.icon size={18} />
