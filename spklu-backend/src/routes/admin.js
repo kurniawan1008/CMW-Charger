@@ -275,12 +275,23 @@ adminRouter.post('/channels/:id/params', requireSuperadmin, async (req, res, nex
       });
     }
 
-    await query(
-      `INSERT INTO motor_param_audit_log
-         (admin_user_id, device_id, channel, fw_slot, old_values, new_values, result)
-       VALUES (?,?,?,?,?,?,'OK')`,
-      [req.user.id, chn.device_id, chn.device_ch, Number(slot), JSON.stringify(json.old), JSON.stringify(json.new)],
-    );
+    try {
+      await query(
+        `INSERT INTO motor_param_audit_log
+           (admin_user_id, device_id, channel, fw_slot, old_values, new_values, result)
+         VALUES (?,?,?,?,?,?,'OK')`,
+        [req.user.id, chn.device_id, chn.device_ch, Number(slot), JSON.stringify(json.old), JSON.stringify(json.new)],
+      );
+    } catch (auditErr) {
+      // Perubahan SUDAH diterapkan ke mesin (write+verify+NVS sukses di firmware).
+      // Kalau INSERT audit gagal (mis. DB blip), JANGAN buang hasil yang sudah
+      // diterapkan dengan melempar 500 — itu menyesatkan admin mengira gagal.
+      // Catat ke console untuk investigasi, tetap balas sukses ke admin.
+      console.error('[audit] gagal mencatat setparam OK (perubahan SUDAH diterapkan ke mesin):', {
+        deviceId: chn.device_id, channel: chn.device_ch, slot: Number(slot),
+        userId: req.user.id, err: auditErr.message,
+      });
+    }
     res.json(json);
   } catch (err) { next(err); }
 });
