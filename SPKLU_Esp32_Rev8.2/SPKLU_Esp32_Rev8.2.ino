@@ -1134,7 +1134,10 @@ void uiSetMotorLabels(uint8_t c) {
   for(int i=0;i<10;i++){
     // Slot yang sedang aktif pakai nama dari web (webMotorName) kalau ada;
     // 9 slot lain (bukan pilihan aktif) selalu pakai label asli firmware.
-    String label = (i == ch[c].motorIdx && webMotorName[c].length())
+    // Override TIDAK berlaku saat halaman Settings teknisi sedang terbuka
+    // (ch[c].settingOpen) — teknisi butuh lihat label asli NVS untuk
+    // identifikasi profil yang sedang di-adjust, bukan nama sementara web.
+    String label = (i == ch[c].motorIdx && !ch[c].settingOpen && webMotorName[c].length())
       ? webMotorName[c] : profiles[c][i].label;
     nxSendCmd("b_m"+String(i)+".txt=\""+label+"\"");
     delay(1);
@@ -1671,7 +1674,15 @@ ch[c].done_sec = 0;
       if (!selectFromBackend) webMotorName[c] = "";
       ch[c].state = SELECT;
       if (xyReadBlock(c)) resetSession(c);
-      if (activePage == (uint8_t)(c+1)) { uiHighlightMotor(ch[c].motorIdx); uiSetMotorLabels(c); }
+      if (activePage == (uint8_t)(c+1)) {
+        uiHighlightMotor(ch[c].motorIdx);
+        // Seleksi dari backend ($SELECT): jangan repaint label di sini —
+        // webMotorName[c] masih nilai LAMA (di-set final setelah handleCmd()
+        // return ke backendHandleLine()), yang akan repaint lagi dengan nama
+        // final. Repaint di sini hanya akan flicker dgn label basi + overhead
+        // serial ganda. Seleksi lokal tetap repaint langsung seperti semula.
+        if (!selectFromBackend) uiSetMotorLabels(c);
+      }
       uiMsg("PROFILE SELECTED", 0xAD97);
     } else {
       uiMsg("SELECT FAILED", 0xF9C6);
