@@ -20,10 +20,13 @@ const TRIAL_AFTER_S = Number(process.env.SIM_TRIAL_AFTER_S || 0);
 const ST = { IDLE: 0, SELECT: 1, CHARGING: 2, DONE: 3, FAULT: 4, PAUSED: 5 };
 let requireAuth = (process.env.SIM_MODE || 'ONLINE') === 'ONLINE';
 
+const defaultParams = () => ({ vset: 64.30, iset: 15.00, ocp: 16.00, otp: 65, lvp: 85.00 });
+
 const mkCh = () => ({
   state: ST.IDLE, motorIdx: 0, authorized: false, sessionId: '',
   limitType: 0, limitKwh: 0, limitRp: 0, limitSec: 0, limitReached: false,
   kwh: 0, sec: 0, vout: 0, iout: 0,
+  params: Array.from({ length: 10 }, defaultParams),
 });
 const ch = [mkCh(), mkCh(), mkCh()];
 
@@ -142,6 +145,30 @@ function handleCmd(line) {
     if (c < 0 || !(m >= 0 && m <= 9)) return send('#ERR sel_arg');
     ch[c].motorIdx = m;
     return send('#OK select');
+  }
+  if (line.startsWith('$GETPARAM,')) {
+    const [chS, slotS] = line.slice(10).split(',');
+    const c = parseCh(chS), slot = Number(slotS);
+    if (c < 0 || !(slot >= 0 && slot <= 9)) return send('#ERR getparam_arg');
+    const p = ch[c].params[slot];
+    return send(`#OK getparam {"ch":${c + 1},"slot":${slot},"label":"Slot ${slot}",` +
+      `"vset":${p.vset.toFixed(2)},"iset":${p.iset.toFixed(2)},"ocp":${p.ocp.toFixed(2)},` +
+      `"otp":${p.otp},"lvp":${p.lvp.toFixed(2)}}`);
+  }
+  if (line.startsWith('$SETPARAM,')) {
+    const [chS, slotS, vsetS, isetS, ocpS, otpS, lvpS] = line.slice(10).split(',');
+    const c = parseCh(chS), slot = Number(slotS);
+    if (c < 0 || !(slot >= 0 && slot <= 9)) return send('#ERR setparam_arg');
+    if (ch[c].state === ST.CHARGING) return send('#ERR ch_charging');
+    const old = ch[c].params[slot];
+    const next = {
+      vset: Number(vsetS), iset: Number(isetS), ocp: Number(ocpS),
+      otp: Number(otpS), lvp: Number(lvpS),
+    };
+    ch[c].params[slot] = next;
+    return send(`#OK setparam {"ch":${c + 1},"slot":${slot},` +
+      `"old":{"vset":${old.vset.toFixed(2)},"iset":${old.iset.toFixed(2)},"ocp":${old.ocp.toFixed(2)},"otp":${old.otp},"lvp":${old.lvp.toFixed(2)}},` +
+      `"new":{"vset":${next.vset.toFixed(2)},"iset":${next.iset.toFixed(2)},"ocp":${next.ocp.toFixed(2)},"otp":${next.otp},"lvp":${next.lvp.toFixed(2)}}}`);
   }
   if (line.startsWith('$START,')) {
     const c = parseCh(line.slice(7));
