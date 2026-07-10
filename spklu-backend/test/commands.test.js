@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildSelect, buildAuth, buildStart, buildStop, buildDeauth, buildClear,
+  buildGetParam, buildSetParam,
   chStateToStatus, CH_STATE,
 } from '../src/services/commands.js';
 
@@ -54,4 +55,23 @@ test('mapping ChState firmware -> status channel DB', () => {
   assert.equal(chStateToStatus(CH_STATE.DONE), 'READY');
   assert.equal(chStateToStatus(CH_STATE.FAULT), 'FAULT');
   assert.equal(chStateToStatus(CH_STATE.PAUSED), 'PAUSED');
+});
+
+test('buildGetParam format & validasi', () => {
+  assert.equal(buildGetParam(1, 0), '$GETPARAM,1,0');
+  assert.throws(() => buildGetParam(0, 0), /channel/);
+  assert.throws(() => buildGetParam(1, 10), /slot/);
+});
+
+test('buildSetParam format & validasi rentang', () => {
+  const p = { vset: 64.3, iset: 15, ocp: 16, otp: 65, lvp: 85 };
+  assert.equal(buildSetParam(1, 0, p), '$SETPARAM,1,0,64.30,15.00,16.00,65,85.00');
+
+  assert.throws(() => buildSetParam(1, 0, { ...p, vset: 0.5 }), /vset/);
+  assert.throws(() => buildSetParam(1, 0, { ...p, vset: 200 }), /vset/);
+  assert.throws(() => buildSetParam(1, 0, { ...p, iset: -1 }), /iset/);
+  assert.throws(() => buildSetParam(1, 0, { ...p, ocp: 60 }), /ocp/);
+  assert.throws(() => buildSetParam(1, 0, { ...p, otp: 50 }), /otp/);
+  assert.throws(() => buildSetParam(1, 0, { ...p, lvp: 5 }), /lvp/);
+  assert.throws(() => buildSetParam(1, 0, { ...p, ocp: 10, iset: 15 }), />=/);
 });

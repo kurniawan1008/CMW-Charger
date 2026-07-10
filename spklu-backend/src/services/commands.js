@@ -11,6 +11,26 @@ function assertChannel(ch) {
   }
 }
 
+function assertSlot(slot) {
+  if (!Number.isInteger(slot) || slot < 0 || slot > 9) {
+    throw new Error(`slot harus 0..9, dapat: ${slot}`);
+  }
+}
+
+// Batas identik dengan constrain() di firmware (ADJ, — halaman Settings
+// lokal), supaya remote-write tidak bisa menulis nilai yang tak akan
+// pernah lolos lewat jalur fisik.
+const PARAM_RANGE = {
+  vset: [1, 125], iset: [0, 50], ocp: [0.1, 52], otp: [60, 120], lvp: [10, 145],
+};
+
+function assertParamRange(name, value) {
+  const [min, max] = PARAM_RANGE[name];
+  if (!(Number(value) >= min && Number(value) <= max)) {
+    throw new Error(`${name} harus ${min}..${max}, dapat: ${value}`);
+  }
+}
+
 export function buildSelect(ch, fwSlot, name) {
   assertChannel(ch);
   if (!Number.isInteger(fwSlot) || fwSlot < 0 || fwSlot > 9) {
@@ -46,6 +66,27 @@ export const buildStart = (ch) => (assertChannel(ch), `$START,${ch}`);
 export const buildStop = (ch) => (assertChannel(ch), `$STOP,${ch}`);
 export const buildDeauth = (ch) => (assertChannel(ch), `$DEAUTH,${ch}`);
 export const buildClear = (ch) => (assertChannel(ch), `$CLEAR,${ch}`);
+
+export function buildGetParam(ch, slot) {
+  assertChannel(ch);
+  assertSlot(slot);
+  return `$GETPARAM,${ch},${slot}`;
+}
+
+export function buildSetParam(ch, slot, { vset, iset, ocp, otp, lvp }) {
+  assertChannel(ch);
+  assertSlot(slot);
+  assertParamRange('vset', vset);
+  assertParamRange('iset', iset);
+  assertParamRange('ocp', ocp);
+  assertParamRange('otp', otp);
+  assertParamRange('lvp', lvp);
+  if (Number(ocp) < Number(iset)) {
+    throw new Error(`ocp (${ocp}) harus >= iset (${iset})`);
+  }
+  return `$SETPARAM,${ch},${slot},${Number(vset).toFixed(2)},${Number(iset).toFixed(2)},` +
+    `${Number(ocp).toFixed(2)},${Math.round(Number(otp))},${Number(lvp).toFixed(2)}`;
+}
 
 // ChState firmware -> enum kolom channels.status
 export const CH_STATE = { IDLE: 0, SELECT: 1, CHARGING: 2, DONE: 3, FAULT: 4, PAUSED: 5 };
