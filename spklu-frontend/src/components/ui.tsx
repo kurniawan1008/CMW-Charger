@@ -40,7 +40,7 @@ export function Button({
 // ===== Card =====
 export function Card({ className = '', children, ...props }: { className?: string; children: ReactNode } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={`rounded-card bg-white p-5 shadow-card ${className}`} {...props}>
+    <div className={`rounded-card bg-white p-5 shadow-card transition-all duration-200 hover:shadow-raise hover:-translate-y-0.5 ${className}`} {...props}>
       {children}
     </div>
   );
@@ -87,7 +87,7 @@ const tones: Record<Tone, string> = {
 
 export function Badge({ tone = 'neutral', pulse, children }: { tone?: Tone; pulse?: boolean; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${tones[tone]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${tones[tone]} ${pulse ? 'shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : ''}`}>
       {pulse && <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-current" />}
       {children}
     </span>
