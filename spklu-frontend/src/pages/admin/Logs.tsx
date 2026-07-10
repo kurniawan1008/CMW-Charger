@@ -46,6 +46,7 @@ export default function Logs() {
       <PageHeader
         title="Log Transaksi"
         sub="Seluruh sesi charging — sesi TRIAL (mesin mode offline) ditandai jelas, tanpa billing"
+        icon={<FlaskConical size={20} />}
       />
 
       <div className="mb-4 flex flex-wrap gap-2.5">

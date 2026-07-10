@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Plus, Pencil, Info } from 'lucide-react';
+import { Plus, Pencil, Info, Cpu } from 'lucide-react';
 import { api } from '../../lib/api';
 import { dateTime } from '../../lib/format';
 import { Button, Field, Badge } from '../../components/ui';
@@ -68,6 +68,7 @@ export default function Machines() {
       <PageHeader
         title="Manajemen Mesin"
         sub="Maks 3 channel & 7 kW per mesin (batas hardware) · mode diatur di firmware"
+        icon={<Cpu size={20} />}
         action={<Button onClick={() => setEditing('new')}><Plus size={15} /> Tambah mesin</Button>}
       />
       <div className="mb-4"><SearchBox value={search} onChange={setSearch} placeholder="Cari nama mesin…" /></div>

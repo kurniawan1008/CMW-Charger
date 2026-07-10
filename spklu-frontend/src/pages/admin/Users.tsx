@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Users as UsersIcon } from 'lucide-react';
 import { api } from '../../lib/api';
 import { rupiah, dateTime } from '../../lib/format';
 import { Button, Badge, Card } from '../../components/ui';
@@ -47,7 +48,7 @@ export default function AdminUsers() {
 
   return (
     <div>
-      <PageHeader title="Pengguna" sub="Daftar akun user, saldo, dan aktivitasnya" />
+      <PageHeader title="Pengguna" sub="Daftar akun user, saldo, dan aktivitasnya" icon={<UsersIcon size={20} />} />
       <div className="mb-4"><SearchBox value={search} onChange={setSearch} placeholder="Cari nama / email…" /></div>
 
       <Table head={['Pengguna', 'Kontak', 'Saldo', 'Status', 'Terdaftar', '']}>

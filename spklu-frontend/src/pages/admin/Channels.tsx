@@ -52,6 +52,7 @@ export default function Channels() {
       <PageHeader
         title="Manajemen Channel"
         sub="Status real-time dari telemetry firmware — satu-satunya kontrol manual: maintenance"
+        icon={<Wrench size={20} />}
       />
 
       <Table head={['Channel', 'Mesin', 'Lokasi', 'Status', 'Sesi berjalan', 'Maintenance']}>

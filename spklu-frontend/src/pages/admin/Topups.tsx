@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { WalletCards } from 'lucide-react';
 import { api } from '../../lib/api';
 import { rupiah, dateTime } from '../../lib/format';
 import { Button, Badge } from '../../components/ui';
@@ -65,6 +66,7 @@ export default function Topups() {
       <PageHeader
         title="Top-Up Requests"
         sub="Verifikasi manual: cocokkan nominal dengan mutasi rekening sebelum menyetujui"
+        icon={<WalletCards size={20} />}
       />
 
       <div className="mb-4 flex gap-1 rounded-xl bg-surface-sunken p-1" role="tablist">

@@ -44,6 +44,7 @@ export default function Admins() {
       <PageHeader
         title="Akun Admin"
         sub="Hanya superadmin yang bisa menambah / menonaktifkan admin"
+        icon={<ShieldCheck size={20} />}
         action={<Button onClick={() => setCreating(true)}><Plus size={15} /> Tambah admin</Button>}
       />
 

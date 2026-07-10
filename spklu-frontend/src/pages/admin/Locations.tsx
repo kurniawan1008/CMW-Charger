@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Plus, Pencil, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, ExternalLink, MapPin } from 'lucide-react';
 import { api } from '../../lib/api';
 import { gmapsUrl } from '../../lib/format';
 import { Button, Field, Badge } from '../../components/ui';
@@ -69,6 +69,7 @@ export default function Locations() {
       <PageHeader
         title="Lokasi SPKLU"
         sub="Kelola titik stasiun — koordinat dipakai untuk tautan Maps di aplikasi user"
+        icon={<MapPin size={20} />}
         action={
           <Button onClick={() => setEditing('new')}>
             <Plus size={15} /> Tambah lokasi

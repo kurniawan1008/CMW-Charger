@@ -70,7 +70,7 @@ export default function Overview() {
 
   return (
     <div>
-      <PageHeader title="Overview" sub="Denyut jaringan SPKLU Anda hari ini" />
+      <PageHeader title="Overview" sub="Denyut jaringan SPKLU Anda hari ini" icon={<Activity size={20} />} />
 
       {/* Stat cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">

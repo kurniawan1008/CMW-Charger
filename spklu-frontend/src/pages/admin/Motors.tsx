@@ -58,6 +58,7 @@ export default function Motors() {
       <PageHeader
         title="Motor Profiles"
         sub="Katalog motor + parameter charging teknis — fw_slot memetakan ke slot M0–M9 di ESP32"
+        icon={<Zap size={20} />}
         action={<Button onClick={() => setEditing('new')}><Plus size={15} /> Tambah profil</Button>}
       />
       <div className="mb-4"><SearchBox value={search} onChange={setSearch} placeholder="Cari merk / model…" /></div>
