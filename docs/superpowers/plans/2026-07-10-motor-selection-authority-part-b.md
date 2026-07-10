@@ -207,7 +207,10 @@ SEBELUM blok `$START,` berikutnya:
 
     profiles[c][slot] = newP;
     saveProfileToNVS(c, (uint8_t)slot);
-    if (ch[c].motorIdx == (uint8_t)slot) xyReadBlock(c);
+    // Slot yang diedit == motor aktif -> reapply dataset ke register operasi
+    // live (bukan cuma baca), mirip jalur SETSAVE lokal, supaya charging
+    // berikutnya tidak memakai parameter lama.
+    if (ch[c].motorIdx == (uint8_t)slot) { xySelectDataSet(c, (uint8_t)slot); xyReadBlock(c); }
 
     char cb[220];
     snprintf(cb, sizeof(cb),

@@ -2117,7 +2117,13 @@ static void backendHandleLine(const String& ln) {
 
     profiles[c][slot] = newP;
     saveProfileToNVS(c, (uint8_t)slot);
-    if (ch[c].motorIdx == (uint8_t)slot) xyReadBlock(c);
+    // Kalau slot yang diedit adalah motor yang SEDANG dipilih, reapply dataset
+    // ke register operasi live (bukan cuma baca) — mirror jalur SETSAVE lokal.
+    // Tanpa xySelectDataSet, register live tetap nilai lama sampai $SELECT
+    // berikutnya, sehingga charging bisa pakai parameter lama walau admin sudah
+    // sukses menulis. xySelectDataSet memaksa output OFF dulu (aman: output juga
+    // sudah OFF sejak awal blok, dan $SETPARAM ditolak saat CHARGING).
+    if (ch[c].motorIdx == (uint8_t)slot) { xySelectDataSet(c, (uint8_t)slot); xyReadBlock(c); }
 
     char cb[220];
     snprintf(cb, sizeof(cb),
