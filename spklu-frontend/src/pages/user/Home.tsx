@@ -61,7 +61,7 @@ export default function Home() {
           </Link>
         </div>
         <div className="flex flex-col gap-2.5">
-          {locations.slice(0, 3).map((loc) => (
+          {locations.slice(0, 3).map((loc, i) => (
             // div ber-role button (bukan <Link>) karena berisi <a> ke Maps —
             // elemen interaktif tidak boleh bersarang.
             <div
@@ -75,7 +75,8 @@ export default function Home() {
                   navigate('/charge', { state: { locationId: loc.id } });
                 }
               }}
-              className="cursor-pointer rounded-card"
+              className="rise-in cursor-pointer rounded-card"
+              style={{ animationDelay: `${i * 60}ms` }}
             >
               <Card className="hover-wiggle card-lift flex items-center gap-3.5">
                 <div className="wiggle-target flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
@@ -123,8 +124,8 @@ export default function Home() {
           </Card>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {recent.map((s) => (
-              <Card key={s.id} className="flex items-center gap-3.5">
+            {recent.map((s, i) => (
+              <Card key={s.id} className="rise-in card-lift flex items-center gap-3.5" style={{ animationDelay: `${i * 60}ms` }}>
                 <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${s.status === 'COMPLETED' ? 'bg-energy-50 text-energy-600' : s.status === 'FAULT' ? 'bg-danger-50 text-danger-500' : 'bg-surface-sunken text-ink-400'}`}>
                   <Zap size={18} />
                 </div>
