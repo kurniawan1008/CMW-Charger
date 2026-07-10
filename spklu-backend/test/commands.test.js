@@ -39,6 +39,7 @@ test('perintah sederhana valid', () => {
 test('buildSelect menyertakan nama motor tersanitasi', () => {
   assert.equal(buildSelect(2, 7, 'Honda ICON-e'), '$SELECT,2,7,Honda ICON-e');
   assert.equal(buildSelect(1, 0, 'Motor, "Aneh"'), '$SELECT,1,0,Motor Aneh');
+  assert.equal(buildSelect(1, 0, 'AC\\DC Motor'), '$SELECT,1,0,ACDC Motor');
   assert.equal(buildSelect(1, 0, ''), '$SELECT,1,0');
   assert.equal(buildSelect(1, 0), '$SELECT,1,0');
 
