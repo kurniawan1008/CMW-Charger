@@ -130,6 +130,20 @@
   pointer-events: none;
 }
 
+/* Versi lebih tipis untuk permukaan luas (kartu besar) supaya tidak mencolok */
+.shine-subtle {
+  position: relative;
+  overflow: hidden;
+}
+.shine-subtle::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  animation: shineSweep 4.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
 /* Kartu interaktif: angkat + glow saat hover, squish saat ditekan */
 .card-lift {
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
