@@ -1,4 +1,4 @@
-// Klien REST tipis dengan token JWT dari localStorage.
+// Klien REST tipis dengan token JWT dari sessionStorage (hilang saat browser ditutup).
 const BASE = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3001');
 
 // Guard produksi (audit M4): build tanpa VITE_API_URL akan menembak localhost
@@ -16,9 +16,9 @@ export class ApiError extends Error {
 }
 
 export const tokenStore = {
-  get: () => localStorage.getItem('cmw_token'),
-  set: (t: string) => localStorage.setItem('cmw_token', t),
-  clear: () => localStorage.removeItem('cmw_token'),
+  get: () => sessionStorage.getItem('cmw_token'),
+  set: (t: string) => sessionStorage.setItem('cmw_token', t),
+  clear: () => sessionStorage.removeItem('cmw_token'),
 };
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
