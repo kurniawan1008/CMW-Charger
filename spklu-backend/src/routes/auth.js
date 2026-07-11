@@ -5,6 +5,10 @@ import { signToken } from '../auth/jwt.js';
 
 export const authRouter = Router();
 
+// Hash valid dari password acak yang tidak dipakai siapa pun — hanya untuk
+// menyamakan waktu respons login saat identifier tidak ditemukan.
+const DUMMY_HASH = bcrypt.hashSync('timing-equalizer-not-a-real-password', 10);
+
 const publicUser = (u) => ({
   id: u.id, email: u.email, phone: u.phone, fullName: u.full_name,
   username: u.username, balance: Number(u.balance), role: u.role, status: u.status,
@@ -22,6 +26,12 @@ authRouter.post('/register', async (req, res, next) => {
     }
     const dup = await query('SELECT id FROM users WHERE email = ?', [email]);
     if (dup.length) return res.status(409).json({ error: 'Email sudah terdaftar' });
+    // Phone juga harus unik: login menerima phone sebagai identifier, jadi
+    // duplikat phone = bisa login ke akun orang lain (security review #4).
+    if (phone) {
+      const dupPhone = await query('SELECT id FROM users WHERE phone = ?', [phone]);
+      if (dupPhone.length) return res.status(409).json({ error: 'Nomor HP sudah terdaftar' });
+    }
 
     const hash = await bcrypt.hash(password, 10);
     const username = `${String(email).split('@')[0]}_${Date.now().toString(36)}`.slice(0, 80);
@@ -43,7 +53,12 @@ authRouter.post('/login', async (req, res, next) => {
 
     const rows = await query('SELECT * FROM users WHERE email = ? OR phone = ?', [ident, ident]);
     const user = rows[0];
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    // Selalu jalankan bcrypt.compare meski user tidak ditemukan — tanpa ini,
+    // respons "email tak terdaftar" lebih cepat daripada "password salah"
+    // dan bisa dipakai menebak email terdaftar (timing user-enumeration).
+    const hash = user?.password || DUMMY_HASH;
+    const ok = await bcrypt.compare(password, hash);
+    if (!user || !ok) {
       return res.status(401).json({ error: 'Kredensial salah' });
     }
     if (user.status !== 'ACTIVE') return res.status(403).json({ error: 'Akun dinonaktifkan' });

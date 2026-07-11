@@ -21,6 +21,10 @@ userRouter.get('/me', async (req, res, next) => {
 userRouter.patch('/me', async (req, res, next) => {
   try {
     const { name, phone } = req.body || {};
+    if (phone) {
+      const dup = await query('SELECT id FROM users WHERE phone = ? AND id <> ?', [phone, req.user.id]);
+      if (dup.length) return res.status(409).json({ error: 'Nomor HP sudah dipakai akun lain' });
+    }
     await query('UPDATE users SET full_name = COALESCE(?, full_name), phone = COALESCE(?, phone) WHERE id = ?',
       [name || null, phone || null, req.user.id]);
     res.json({ ok: true });
