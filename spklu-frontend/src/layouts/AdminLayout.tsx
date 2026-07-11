@@ -5,7 +5,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   LayoutDashboard, MapPin, HardDrive, PlugZap, Bike, WalletCards,
-  ScrollText, Users, ShieldCheck, Bell, LogOut, Zap,
+  ScrollText, Users, ShieldCheck, Bell, LogOut, Zap, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useTopic } from '../lib/ws';
@@ -33,6 +33,7 @@ export default function AdminLayout() {
   const toast = useToast();
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
 
@@ -52,7 +53,7 @@ export default function AdminLayout() {
       document.removeEventListener('keydown', onKey);
     };
   }, [bellOpen]);
-  useEffect(() => { setBellOpen(false); }, [location.pathname]);
+  useEffect(() => { setBellOpen(false); setNavOpen(false); }, [location.pathname]);
 
   const loadNotifs = () =>
     api.get<Paged<Notif>>('/admin/notifications?limit=12').then((r) => setNotifs(r.data)).catch(() => {});
@@ -75,18 +76,36 @@ export default function AdminLayout() {
 
   return (
     <div className="flex min-h-dvh">
-      {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col border-r border-line bg-white/80 backdrop-blur-xl">
+      {/* Overlay saat sidebar mobile terbuka */}
+      {navOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-ink-900/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar: off-canvas di mobile, statis di layar besar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col border-r border-line bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-out lg:translate-x-0 lg:bg-white/80 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
         <div className="flex items-center gap-2.5 px-5 pb-6 pt-6">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-grad-deep shadow-glow">
             <Zap size={17} className="fill-white text-white" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="font-display text-[15px] font-extrabold leading-tight">
               CMW <span className="bg-grad-energy bg-clip-text text-transparent">OS</span>
             </p>
             <p className="text-[10px] font-bold uppercase tracking-wider text-ink-400">Command Center</p>
           </div>
+          <button
+            onClick={() => setNavOpen(false)}
+            aria-label="Tutup menu"
+            className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-ink-400 hover:bg-surface-sunken lg:hidden"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3">
@@ -123,13 +142,23 @@ export default function AdminLayout() {
       </aside>
 
       {/* Konten */}
-      <div className="ml-[232px] flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-[232px]">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-surface/85 px-7 py-3.5 backdrop-blur-xl">
-          <p className="text-[13px] font-semibold text-ink-400">
-            Jaringan pengisian motor listrik · <span className="font-mono">Rp 2.440/kWh</span>
-          </p>
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-line bg-surface/85 px-4 py-3.5 backdrop-blur-xl sm:px-7">
+          <div className="flex min-w-0 items-center gap-2">
+            <button
+              onClick={() => setNavOpen(true)}
+              aria-label="Buka menu"
+              className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-white text-ink-600 hover:border-cmw-500 hover:text-cmw-600 lg:hidden"
+            >
+              <Menu size={17} />
+            </button>
+            <p className="truncate text-[12px] font-semibold text-ink-400 sm:text-[13px]">
+              <span className="hidden sm:inline">Jaringan pengisian motor listrik · </span>
+              <span className="font-mono">Rp 2.440/kWh</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative" ref={bellRef}>
               <button
                 onClick={() => setBellOpen((v) => !v)}
@@ -152,7 +181,7 @@ export default function AdminLayout() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.16 }}
-                    className="absolute right-0 top-12 z-50 w-[340px] rounded-card border border-line bg-white p-2 shadow-raise"
+                    className="fixed left-4 right-4 top-16 z-50 rounded-card border border-line bg-white p-2 shadow-raise sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[340px]"
                   >
                     <p className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-ink-400">Notifikasi</p>
                     {notifs.length === 0 && (
@@ -170,11 +199,11 @@ export default function AdminLayout() {
                 )}
               </AnimatePresence>
             </div>
-            <div className="flex items-center gap-2.5 rounded-xl border border-line bg-white py-1.5 pl-1.5 pr-3.5">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-grad-deep text-[11px] font-extrabold text-white">
+            <div className="flex items-center gap-2.5 rounded-xl border border-line bg-white py-1.5 pl-1.5 pr-2 sm:pr-3.5">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-grad-deep text-[11px] font-extrabold text-white">
                 {initials}
               </span>
-              <span className="text-[13px] font-bold">{user?.fullName}</span>
+              <span className="hidden truncate text-[13px] font-bold sm:inline">{user?.fullName}</span>
               {user?.role === 'SUPERADMIN' && (
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-700">Super</span>
               )}
@@ -189,7 +218,7 @@ export default function AdminLayout() {
             animate={{ opacity: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
             transition={{ duration: reduce ? 0.1 : 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="mx-auto w-full max-w-6xl flex-1 px-7 py-6"
+            className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-7 sm:py-6"
           >
             <Outlet />
           </motion.main>
