@@ -9,6 +9,13 @@ import { sessionsRouter } from './routes/sessions.js';
 import { adminRouter } from './routes/admin.js';
 
 export const app = express();
+// Backend selalu di belakang Nginx (proxy_pass 127.0.0.1:3001) — tanpa ini,
+// req.ip selalu terbaca sebagai IP Nginx (127.0.0.1) untuk SEMUA request,
+// jadi rate-limiter di bawah membagi kuotanya ke satu bucket untuk seluruh
+// pengguna produksi sekaligus (bug: 429 masal walau baru sedikit yang top-up).
+// 'trust proxy'=1 mempercayai satu hop reverse-proxy terdekat (Nginx) untuk
+// membaca X-Forwarded-For asli milik tiap klien.
+app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json({ limit: '64kb' }));
