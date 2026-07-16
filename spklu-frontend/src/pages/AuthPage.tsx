@@ -1,8 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { Button, Field } from '../components/ui';
+import { Modal } from '../components/overlay';
 import { CurrentLine } from '../components/energy';
+
+interface PendingRegister { name: string; email: string; phone?: string; password: string }
 
 export default function AuthPage() {
   const { login, register } = useAuth();
@@ -10,30 +14,73 @@ export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showPw2, setShowPw2] = useState(false);
+  const [tncOpen, setTncOpen] = useState(false);
+  const [pending, setPending] = useState<PendingRegister | null>(null);
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-    setBusy(true);
     const f = new FormData(e.currentTarget);
-    try {
-      if (mode === 'login') {
+
+    if (mode === 'login') {
+      setBusy(true);
+      try {
         await login(String(f.get('identifier')), String(f.get('password')));
-      } else {
-        await register({
-          name: String(f.get('name')),
-          email: String(f.get('email')),
-          phone: String(f.get('phone') || '') || undefined,
-          password: String(f.get('password')),
-        });
+        navigate('/', { replace: true });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
+      } finally {
+        setBusy(false);
       }
+      return;
+    }
+
+    // Daftar: cek konfirmasi password dulu, baru tampilkan Syarat & Ketentuan —
+    // akun baru sungguh dibuat hanya setelah user klik Setuju di modal.
+    const password = String(f.get('password'));
+    const password2 = String(f.get('password2'));
+    if (password !== password2) {
+      setError('Konfirmasi password tidak sama dengan password di atas');
+      return;
+    }
+    setPending({
+      name: String(f.get('name')),
+      email: String(f.get('email')),
+      phone: String(f.get('phone') || '') || undefined,
+      password,
+    });
+    setTncOpen(true);
+  };
+
+  const confirmRegister = async () => {
+    if (!pending) return;
+    setBusy(true);
+    setError('');
+    try {
+      await register(pending);
+      setTncOpen(false);
       navigate('/', { replace: true });
     } catch (err) {
+      setTncOpen(false);
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan');
     } finally {
       setBusy(false);
     }
   };
+
+  const eyeButton = (shown: boolean, toggle: () => void, label: string) => (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={label}
+      tabIndex={-1}
+      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-ink-400 transition-colors hover:bg-surface-sunken hover:text-ink-600"
+    >
+      {shown ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
+  );
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden px-4 py-10">
@@ -87,10 +134,18 @@ export default function AuthPage() {
               <Field label="Email" name="email" type="email" required autoComplete="email" placeholder="nama@email.com" />
             )}
             <Field
-              label="Password" name="password" type="password" required
+              label="Password" name="password" type={showPw ? 'text' : 'password'} required
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               minLength={8} placeholder="Minimal 8 karakter"
+              endAdornment={eyeButton(showPw, () => setShowPw((v) => !v), showPw ? 'Sembunyikan password' : 'Tampilkan password')}
             />
+            {mode === 'register' && (
+              <Field
+                label="Ulangi password" name="password2" type={showPw2 ? 'text' : 'password'} required
+                autoComplete="new-password" minLength={8} placeholder="Ketik ulang password"
+                endAdornment={eyeButton(showPw2, () => setShowPw2((v) => !v), showPw2 ? 'Sembunyikan password' : 'Tampilkan password')}
+              />
+            )}
             {error && (
               <p className="rounded-control bg-danger-50 px-4 py-3 text-[13px] font-semibold text-danger-700" role="alert">
                 {error}
@@ -106,6 +161,28 @@ export default function AuthPage() {
           Rp 2.440/kWh · Semua stasiun · Tanpa langganan
         </p>
       </div>
+
+      <Modal open={tncOpen} onClose={() => setTncOpen(false)} title="Syarat & Ketentuan" wide>
+        <div className="max-h-[45vh] overflow-y-auto rounded-control border border-line bg-surface-sunken p-4 text-[13px] leading-relaxed text-ink-600">
+          <p className="mb-3">
+            Dengan membuat akun CMW Charge, Anda menyetujui hal-hal berikut:
+          </p>
+          <ol className="list-decimal space-y-2 pl-4">
+            <li>Saldo yang sudah di-top-up digunakan untuk membayar sesi pengisian daya dan tidak dapat dicairkan kembali menjadi uang tunai, kecuali atas kebijakan admin.</li>
+            <li>Setiap top-up diverifikasi manual oleh admin berdasarkan mutasi pembayaran sebelum saldo ditambahkan ke akun Anda.</li>
+            <li>Biaya pengisian dihitung berdasarkan tarif per kWh yang berlaku saat sesi berjalan dan dapat berubah sewaktu-waktu.</li>
+            <li>Anda bertanggung jawab menjaga kerahasiaan email/nomor HP dan password akun Anda.</li>
+            <li>Data yang Anda berikan (nama, email, nomor HP) digunakan untuk keperluan operasional layanan CMW Charge dan tidak dibagikan ke pihak ketiga tanpa izin.</li>
+            <li>CMW Charge berhak menonaktifkan akun yang terindikasi melakukan penyalahgunaan sistem.</li>
+          </ol>
+        </div>
+        <div className="mt-5 flex justify-end gap-2.5">
+          <Button variant="ghost" onClick={() => setTncOpen(false)}>Batal</Button>
+          <Button variant="energy" loading={busy} onClick={confirmRegister}>
+            Setuju & Buat Akun
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -47,8 +47,8 @@ export function Card({ className = '', children, ...props }: { className?: strin
 }
 
 // ===== Input =====
-export const Field = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string }>(
-  ({ label, error, hint, id, className = '', ...props }, ref) => {
+export const Field = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string; hint?: string; endAdornment?: ReactNode }>(
+  ({ label, error, hint, id, className = '', endAdornment, ...props }, ref) => {
     // useId cegah tabrakan id bila dua field berlabel sama di satu halaman (audit L1).
     const autoId = useId();
     const fieldId = id || autoId;
@@ -57,12 +57,17 @@ export const Field = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
         <label htmlFor={fieldId} className="text-[13px] font-bold text-ink-700">
           {label}
         </label>
-        <input
-          ref={ref}
-          id={fieldId}
-          className={`rounded-control border bg-white px-4 py-3 text-sm font-medium text-ink-900 outline-none transition-colors placeholder:text-ink-300 focus:border-cmw-500 focus:ring-2 focus:ring-cmw-100 ${error ? 'border-danger-500' : 'border-line'} ${className}`}
-          {...props}
-        />
+        <div className="relative">
+          <input
+            ref={ref}
+            id={fieldId}
+            className={`w-full rounded-control border bg-white px-4 py-3 text-sm font-medium text-ink-900 outline-none transition-colors placeholder:text-ink-300 focus:border-cmw-500 focus:ring-2 focus:ring-cmw-100 ${error ? 'border-danger-500' : 'border-line'} ${endAdornment ? 'pr-11' : ''} ${className}`}
+            {...props}
+          />
+          {endAdornment && (
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2">{endAdornment}</div>
+          )}
+        </div>
         {error ? (
           <p className="text-xs font-semibold text-danger-500" role="alert">{error}</p>
         ) : hint ? (
