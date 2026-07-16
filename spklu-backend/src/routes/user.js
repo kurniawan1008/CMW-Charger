@@ -71,6 +71,24 @@ userRouter.get('/topups', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Riwayat saldo gabungan untuk halaman Saldo: permintaan top-up user (semua
+// status) + aksi admin dari transaction_logs (top-up langsung & rebalancing).
+// Sesi charging/refund TIDAK termasuk — itu ada di riwayat sesi. TOPUP juga
+// dikecualikan agar tidak dobel dengan baris APPROVED di topup_requests.
+userRouter.get('/balance-history', async (req, res, next) => {
+  try {
+    res.json(await paginate(
+      `SELECT CONCAT('req-', id) AS id, amount, status, reason AS note, created_at, 'REQUEST' AS kind
+         FROM topup_requests WHERE user_id = ?
+       UNION ALL
+       SELECT CONCAT('log-', id) AS id, amount, NULL AS status, description AS note, created_at, type AS kind
+         FROM transaction_logs WHERE user_id = ? AND type IN ('ADMIN_TOPUP','ADMIN_ADJUST')
+       ORDER BY created_at DESC`,
+      [req.user.id, req.user.id], req.query,
+    ));
+  } catch (err) { next(err); }
+});
+
 // Riwayat sesi charging milik user sendiri.
 userRouter.get('/transactions', async (req, res, next) => {
   try {

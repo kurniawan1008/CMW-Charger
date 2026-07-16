@@ -7,26 +7,57 @@ import { Button, Card, Badge, Empty, Field } from '../../components/ui';
 import { CountUp } from '../../components/energy';
 import type { Paged } from '../../lib/types';
 
-interface Topup {
-  id: number;
+interface BalanceItem {
+  id: string;
   amount: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  reason: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  note: string | null;
   created_at: string;
+  kind: 'REQUEST' | 'ADMIN_TOPUP' | 'ADMIN_ADJUST';
 }
 
 const statusTone = { PENDING: 'amber', APPROVED: 'energy', REJECTED: 'danger' } as const;
 const statusLabel = { PENDING: 'Menunggu', APPROVED: 'Disetujui', REJECTED: 'Ditolak' } as const;
 
+// Deskripsi tampilan per jenis entri riwayat saldo.
+function describe(t: BalanceItem) {
+  const amt = Number(t.amount);
+  if (t.kind === 'ADMIN_TOPUP') {
+    return {
+      amountText: `+ ${rupiah(amt)}`, negative: false,
+      typeLabel: 'Top-up oleh admin',
+      badge: { tone: 'sky' as const, label: 'Admin', pulse: false },
+      note: t.note,
+    };
+  }
+  if (t.kind === 'ADMIN_ADJUST') {
+    const positive = amt >= 0;
+    return {
+      amountText: `${positive ? '+' : '−'} ${rupiah(Math.abs(amt))}`, negative: !positive,
+      typeLabel: 'Penyesuaian saldo (admin)',
+      badge: { tone: (positive ? 'sky' : 'danger') as 'sky' | 'danger', label: 'Koreksi', pulse: false },
+      note: t.note,
+    };
+  }
+  // REQUEST
+  const status = t.status ?? 'PENDING';
+  return {
+    amountText: rupiah(amt), negative: false,
+    typeLabel: 'Permintaan top-up',
+    badge: { tone: statusTone[status], label: statusLabel[status], pulse: status === 'PENDING' },
+    note: status === 'REJECTED' && t.note ? `Alasan: ${t.note}` : null,
+  };
+}
+
 export default function Wallet() {
   const { user, refresh } = useAuth();
-  const [topups, setTopups] = useState<Topup[]>([]);
+  const [history, setHistory] = useState<BalanceItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
   const load = () =>
-    api.get<Paged<Topup>>('/user/topups').then((r) => setTopups(r.data)).catch(() => {});
+    api.get<Paged<BalanceItem>>('/user/balance-history').then((r) => setHistory(r.data)).catch(() => {});
 
   useEffect(() => { load(); }, []);
 
@@ -71,27 +102,28 @@ export default function Wallet() {
       </Card>
 
       <section className="rise-in" style={{ animationDelay: '160ms' }}>
-        <h2 className="mb-3 font-display text-[15px] font-bold">Riwayat top-up</h2>
-        {topups.length === 0 ? (
+        <h2 className="mb-3 font-display text-[15px] font-bold">Riwayat saldo</h2>
+        {history.length === 0 ? (
           <Card>
-            <Empty icon={<WalletCards size={26} />} title="Belum ada top-up" body="Permintaan top-up kamu akan tampil di sini." />
+            <Empty icon={<WalletCards size={26} />} title="Belum ada aktivitas saldo" body="Top-up dan penyesuaian saldo akan tampil di sini." />
           </Card>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {topups.map((t) => (
-              <Card key={t.id} className="flex items-center gap-3.5">
-                <div className="min-w-0 flex-1">
-                  <p className="font-mono text-sm font-bold tabular">{rupiah(Number(t.amount))}</p>
-                  <p className="text-xs text-ink-400">{dateTime(t.created_at)}</p>
-                  {t.status === 'REJECTED' && t.reason && (
-                    <p className="mt-1 text-xs font-semibold text-danger-700">Alasan: {t.reason}</p>
-                  )}
-                </div>
-                <Badge tone={statusTone[t.status]} pulse={t.status === 'PENDING'}>
-                  {statusLabel[t.status]}
-                </Badge>
-              </Card>
-            ))}
+            {history.map((t) => {
+              const d = describe(t);
+              return (
+                <Card key={t.id} className="flex items-center gap-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className={`font-mono text-sm font-bold tabular ${d.negative ? 'text-danger-700' : ''}`}>{d.amountText}</p>
+                    <p className="text-xs text-ink-400">{d.typeLabel} · {dateTime(t.created_at)}</p>
+                    {d.note && (
+                      <p className={`mt-1 text-xs font-semibold ${t.status === 'REJECTED' ? 'text-danger-700' : 'text-ink-500'}`}>{d.note}</p>
+                    )}
+                  </div>
+                  <Badge tone={d.badge.tone} pulse={d.badge.pulse}>{d.badge.label}</Badge>
+                </Card>
+              );
+            })}
           </div>
         )}
       </section>
