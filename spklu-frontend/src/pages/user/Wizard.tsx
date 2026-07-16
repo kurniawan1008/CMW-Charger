@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation as useRouteLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowLeft, MapPin, Bike, CircleCheck, Zap, X, TriangleAlert, PartyPopper, ExternalLink,
+  ArrowLeft, MapPin, Bike, CircleCheck, Zap, X, TriangleAlert, PartyPopper, ExternalLink, PlugZap,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -13,7 +13,7 @@ import { rupiah, duration, gmapsUrl } from '../../lib/format';
 import { Button, Card, Badge } from '../../components/ui';
 import { CountUp, CurrentLine, FlowLink, ProgressRing, Sparkline } from '../../components/energy';
 import { BoltRain, Confetti } from '../../components/motion';
-import { useToast } from '../../components/overlay';
+import { useToast, Modal } from '../../components/overlay';
 import type { Charger, Location, MotorProfile, SessionFinal, SessionTick } from '../../lib/types';
 import { LocationMiniMap } from '../../components/LocationMiniMap';
 
@@ -38,6 +38,7 @@ export default function Wizard() {
 
   const [selLocation, setSelLocation] = useState<Location | null>(null);
   const [selCharger, setSelCharger] = useState<Charger | null>(null);
+  const [confirmCharger, setConfirmCharger] = useState<Charger | null>(null);
   const [selMotor, setSelMotor] = useState<MotorProfile | null>(null);
   const [mode, setMode] = useState<Mode>('idr');
   const [amount, setAmount] = useState(15000);
@@ -267,7 +268,7 @@ export default function Wizard() {
                 <button
                   key={ch.id}
                   disabled={!ch.available}
-                  onClick={() => { setSelCharger(ch); go(3); }}
+                  onClick={() => setConfirmCharger(ch)}
                   className="rise-in cursor-pointer disabled:cursor-not-allowed"
                   style={{ animationDelay: `${i * 40}ms` }}
                 >
@@ -289,6 +290,35 @@ export default function Wizard() {
               )}
             </div>
           )}
+
+          {/* Konfirmasi konektor sebelum lanjut — cegah sesi start padahal colokan belum pas (audit lapangan). */}
+          <Modal
+            open={!!confirmCharger}
+            onClose={() => setConfirmCharger(null)}
+            title="Pastikan Konektor Terhubung"
+          >
+            <div className="flex flex-col items-center gap-3 py-2 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cmw-50 text-cmw-600">
+                <PlugZap size={26} />
+              </div>
+              <p className="text-sm leading-relaxed text-ink-600">
+                Sebelum memulai di <span className="font-bold text-ink-900">{confirmCharger?.label}</span>,
+                pastikan konektor charger sudah terpasang dengan baik dan rapat ke port pengisian motor Anda.
+              </p>
+            </div>
+            <div className="mt-5 flex justify-end gap-2.5">
+              <Button variant="ghost" onClick={() => setConfirmCharger(null)}>Batal</Button>
+              <Button
+                variant="energy"
+                onClick={() => {
+                  if (confirmCharger) { setSelCharger(confirmCharger); go(3); }
+                  setConfirmCharger(null);
+                }}
+              >
+                Sudah Terhubung
+              </Button>
+            </div>
+          </Modal>
 
           {/* ===== 3. Motor ===== */}
           {step === 3 && (
