@@ -3,12 +3,14 @@ import { LogOut } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { Button, Card, Field } from '../../components/ui';
+import { ConfirmDialog } from '../../components/overlay';
 
 export default function Profile() {
   const { user, logout, refresh } = useAuth();
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
   const [busyProfile, setBusyProfile] = useState(false);
   const [busyPass, setBusyPass] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
 
   const initials = (user?.fullName || '?')
     .split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
@@ -41,7 +43,10 @@ export default function Profile() {
 
   return (
     <div className="flex flex-col gap-5">
-      <section className="rise-in flex items-center gap-4">
+      <button
+        onClick={() => setLogoutConfirm(true)}
+        className="rise-in flex cursor-pointer items-center gap-4 rounded-card text-left transition-opacity hover:opacity-80"
+      >
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-grad-deep font-display text-xl font-extrabold text-white shadow-glow">
           {initials}
         </div>
@@ -49,7 +54,7 @@ export default function Profile() {
           <h1 className="font-display text-lg font-extrabold">{user?.fullName}</h1>
           <p className="text-sm text-ink-400">{user?.email}</p>
         </div>
-      </section>
+      </button>
 
       {msg && (
         <p className={`rounded-control px-4 py-3 text-[13px] font-semibold ${msg.kind === 'ok' ? 'bg-energy-50 text-energy-700' : 'bg-danger-50 text-danger-700'}`} role="alert">
@@ -75,9 +80,19 @@ export default function Profile() {
         </form>
       </Card>
 
-      <Button variant="danger" onClick={logout} className="rise-in" style={{ animationDelay: '180ms' }}>
+      <Button variant="danger" onClick={() => setLogoutConfirm(true)} className="rise-in" style={{ animationDelay: '180ms' }}>
         <LogOut size={16} /> Keluar
       </Button>
+
+      <ConfirmDialog
+        open={logoutConfirm}
+        onClose={() => setLogoutConfirm(false)}
+        onConfirm={logout}
+        title="Keluar dari akun?"
+        body="Anda perlu login kembali untuk mengakses akun CMW Charge."
+        confirmLabel="Ya, keluar"
+        danger
+      />
     </div>
   );
 }

@@ -485,6 +485,67 @@ adminRouter.post('/users/:id/activate', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ===== Top-up langsung & rebalancing saldo oleh admin =====
+// Beda dari /topups/:id/approve: ini BUKAN keputusan atas request user,
+// tapi inisiatif admin sendiri (mis. top-up cepat via kasir, atau koreksi
+// saldo salah top-up). Selalu tercatat dengan admin_user_id untuk audit.
+adminRouter.post('/users/:id/topup', async (req, res, next) => {
+  try {
+    const amount = Number(req.body?.amount);
+    const note = (req.body?.note || '').trim();
+    if (!(amount > 0)) return res.status(400).json({ error: 'Nominal harus lebih dari 0' });
+
+    const result = await withTx(async (conn) => {
+      const [[u]] = await conn.query(
+        "SELECT id, full_name FROM users WHERE id = ? AND role = 'USER' FOR UPDATE", [req.params.id]);
+      if (!u) throw Object.assign(new Error('User tidak ditemukan'), { status: 404 });
+      await conn.query('UPDATE users SET balance = balance + ? WHERE id = ?', [amount, u.id]);
+      await conn.query(
+        `INSERT INTO transaction_logs (user_id, admin_user_id, amount, type, description)
+         VALUES (?,?,?,'ADMIN_TOPUP',?)`,
+        [u.id, req.user.id, amount, note || `Top-up langsung oleh admin (${req.user.name})`],
+      );
+      return u;
+    });
+    await notify({
+      userId: result.id, type: 'admin_topup', title: 'Saldo ditambahkan admin',
+      body: `Rp ${amount.toLocaleString('id-ID')} ditambahkan ke saldo Anda oleh admin.${note ? ` Catatan: ${note}` : ''}`,
+    });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+adminRouter.post('/users/:id/adjust-balance', async (req, res, next) => {
+  try {
+    const amount = Number(req.body?.amount); // boleh negatif (koreksi turun)
+    const reason = (req.body?.reason || '').trim();
+    if (!amount || Number.isNaN(amount)) return res.status(400).json({ error: 'Nominal wajib diisi dan tidak nol' });
+    if (!reason) return res.status(400).json({ error: 'Alasan koreksi wajib diisi' });
+
+    const result = await withTx(async (conn) => {
+      const [[u]] = await conn.query(
+        "SELECT id, full_name, balance FROM users WHERE id = ? AND role = 'USER' FOR UPDATE", [req.params.id]);
+      if (!u) throw Object.assign(new Error('User tidak ditemukan'), { status: 404 });
+      if (amount < 0 && Number(u.balance) + amount < 0) {
+        throw Object.assign(new Error('Saldo tidak cukup untuk koreksi ini'), { status: 409 });
+      }
+      await conn.query('UPDATE users SET balance = balance + ? WHERE id = ?', [amount, u.id]);
+      await conn.query(
+        `INSERT INTO transaction_logs (user_id, admin_user_id, amount, type, description)
+         VALUES (?,?,?,'ADMIN_ADJUST',?)`,
+        [u.id, req.user.id, amount, reason],
+      );
+      return u;
+    });
+    const sign = amount > 0 ? '+' : '-';
+    await notify({
+      userId: result.id, type: 'admin_adjust', title: 'Saldo Anda disesuaikan admin',
+      body: `Saldo ${sign}Rp ${Math.abs(amount).toLocaleString('id-ID')} — alasan: ${reason}`,
+    });
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 // ===== Superadmin: kelola akun admin =====
 adminRouter.get('/admins', requireSuperadmin, async (req, res, next) => {
   try {

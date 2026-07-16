@@ -90,9 +90,9 @@ const tones: Record<Tone, string> = {
   neutral: 'bg-surface-sunken text-ink-600',
 };
 
-export function Badge({ tone = 'neutral', pulse, children }: { tone?: Tone; pulse?: boolean; children: ReactNode }) {
+export function Badge({ tone = 'neutral', pulse, className = '', children }: { tone?: Tone; pulse?: boolean; className?: string; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${tones[tone]} ${pulse ? 'shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : ''}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${tones[tone]} ${pulse ? 'shadow-[0_0_0_4px_rgba(16,185,129,0.12)]' : ''} ${className}`}>
       {pulse && <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-current" />}
       {children}
     </span>

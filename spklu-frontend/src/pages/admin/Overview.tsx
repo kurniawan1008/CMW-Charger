@@ -62,32 +62,34 @@ export default function Overview() {
 
   // Number() eksplisit: DECIMAL MySQL bisa tiba sebagai string — CountUp NaN tanpa ini.
   const stats = summary ? [
-    { label: 'Total Pendapatan', value: Number(summary.revenue) || 0, prefix: 'Rp ', icon: Banknote, tint: 'bg-cmw-50 text-cmw-600' },
-    { label: 'Top-Up Disetujui', value: Number(summary.approvedTopup) || 0, prefix: 'Rp ', icon: WalletCards, tint: 'bg-energy-50 text-energy-600' },
-    { label: 'Pengguna Terdaftar', value: Number(summary.registeredUsers) || 0, prefix: '', icon: UsersIcon, tint: 'bg-sky-100 text-sky-500' },
-    { label: 'Sesi Aktif', value: Number(summary.activeSessions) || 0, prefix: '', icon: Activity, tint: 'bg-amber-100 text-amber-700', live: true },
+    { label: 'Total Pendapatan', value: Number(summary.revenue) || 0, prefix: 'Rp ', icon: Banknote, tint: 'bg-cmw-50 text-cmw-600', to: '/admin/log' },
+    { label: 'Top-Up Disetujui', value: Number(summary.approvedTopup) || 0, prefix: 'Rp ', icon: WalletCards, tint: 'bg-energy-50 text-energy-600', to: '/admin/topup' },
+    { label: 'Pengguna Terdaftar', value: Number(summary.registeredUsers) || 0, prefix: '', icon: UsersIcon, tint: 'bg-sky-100 text-sky-500', to: '/admin/users' },
+    { label: 'Sesi Aktif', value: Number(summary.activeSessions) || 0, prefix: '', icon: Activity, tint: 'bg-amber-100 text-amber-700', live: true, to: '/admin/log?status=active' },
   ] : [];
 
   return (
     <div>
       <PageHeader title="Overview" sub="Denyut jaringan SPKLU Anda hari ini" icon={<Activity size={20} />} />
 
-      {/* Stat cards */}
+      {/* Stat cards — klik untuk lihat data terkait */}
       <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
         {stats.map((s, i) => (
-          <Card key={s.label} className="rise-in relative overflow-hidden" style={{ animationDelay: `${i * 50}ms` }}>
-            <div className="absolute inset-x-0 top-0 h-1 bg-grad-energy" />
-            <div className="mb-3 flex items-center justify-between">
-              <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.tint}`}>
-                <s.icon size={18} />
-              </span>
-              {s.live && <Badge tone="energy" pulse>Live</Badge>}
-            </div>
-            <p className="font-display text-[22px] font-extrabold leading-tight tabular">
-              <CountUp value={s.value} prefix={s.prefix} />
-            </p>
-            <p className="mt-0.5 text-[12px] font-semibold text-ink-400">{s.label}</p>
-          </Card>
+          <Link key={s.label} to={s.to} className="block cursor-pointer rounded-card">
+            <Card className="rise-in relative overflow-hidden" style={{ animationDelay: `${i * 50}ms` }}>
+              <div className="absolute inset-x-0 top-0 h-1 bg-grad-energy" />
+              <div className="mb-3 flex items-center justify-between">
+                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.tint}`}>
+                  <s.icon size={18} />
+                </span>
+                {s.live && <Badge tone="energy" pulse>Live</Badge>}
+              </div>
+              <p className="font-display text-[22px] font-extrabold leading-tight tabular">
+                <CountUp value={s.value} prefix={s.prefix} />
+              </p>
+              <p className="mt-0.5 text-[12px] font-semibold text-ink-400">{s.label}</p>
+            </Card>
+          </Link>
         ))}
       </div>
 
@@ -113,19 +115,21 @@ export default function Overview() {
 
         {/* Kolom kanan */}
         <div className="flex flex-col gap-4">
-          <Card className="rise-in" style={{ animationDelay: '260ms' }}>
-            <h2 className="mb-4 font-display text-[15px] font-bold">Status Mesin</h2>
-            {summary && (
-              <Donut
-                centerLabel="mesin"
-                centerValue={String(summary.machines.total)}
-                segments={[
-                  { label: 'Online', value: summary.machines.online, color: '#10B981' },
-                  { label: 'Offline', value: summary.machines.total - summary.machines.online, color: '#E4EBF3' },
-                ]}
-              />
-            )}
-          </Card>
+          <Link to="/admin/mesin" className="block cursor-pointer rounded-card">
+            <Card className="rise-in" style={{ animationDelay: '260ms' }}>
+              <h2 className="mb-4 font-display text-[15px] font-bold">Status Mesin</h2>
+              {summary && (
+                <Donut
+                  centerLabel="mesin"
+                  centerValue={String(summary.machines.total)}
+                  segments={[
+                    { label: 'Online', value: summary.machines.online, color: '#10B981' },
+                    { label: 'Offline', value: summary.machines.total - summary.machines.online, color: '#E4EBF3' },
+                  ]}
+                />
+              )}
+            </Card>
+          </Link>
 
           <Card className="rise-in" style={{ animationDelay: '320ms' }}>
             <div className="mb-3 flex items-center justify-between">

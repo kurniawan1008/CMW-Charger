@@ -68,6 +68,7 @@ sudo mysql < schema.sql                       # tabel awal
 sudo mysql < spklu-backend/db/schema-delta.sql # motor_profiles, enums, settings
 sudo mysql spklu_db < spklu-backend/db/indexes-audit.sql  # index performa
 sudo mysql spklu_db < spklu-backend/db/schema-delta-2.sql # audit log remote-write parameter (Part B)
+sudo mysql spklu_db < spklu-backend/db/schema-delta-3.sql # nomor HP unik (security review)
 ```
 
 ### 1.4 Buat DB user dedicated

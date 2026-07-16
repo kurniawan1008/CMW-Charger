@@ -11,7 +11,7 @@ import { useAuth } from '../lib/auth';
 import { useTopic } from '../lib/ws';
 import { api } from '../lib/api';
 import { CurrentLine } from '../components/energy';
-import { useToast } from '../components/overlay';
+import { useToast, ConfirmDialog } from '../components/overlay';
 import type { Paged } from '../lib/types';
 
 interface Notif { id: number; type: string; title: string; body: string | null; is_read: number; created_at: string }
@@ -34,6 +34,7 @@ export default function AdminLayout() {
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [bellOpen, setBellOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [logoutConfirm, setLogoutConfirm] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
 
@@ -199,7 +200,10 @@ export default function AdminLayout() {
                 )}
               </AnimatePresence>
             </div>
-            <div className="flex items-center gap-2.5 rounded-xl border border-line bg-white py-1.5 pl-1.5 pr-2 sm:pr-3.5">
+            <button
+              onClick={() => setLogoutConfirm(true)}
+              className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-white py-1.5 pl-1.5 pr-2 transition-colors hover:border-cmw-500 sm:pr-3.5"
+            >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-grad-deep text-[11px] font-extrabold text-white">
                 {initials}
               </span>
@@ -207,7 +211,7 @@ export default function AdminLayout() {
               {user?.role === 'SUPERADMIN' && (
                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold uppercase text-amber-700">Super</span>
               )}
-            </div>
+            </button>
           </div>
         </header>
 
@@ -224,6 +228,16 @@ export default function AdminLayout() {
           </motion.main>
         </AnimatePresence>
       </div>
+
+      <ConfirmDialog
+        open={logoutConfirm}
+        onClose={() => setLogoutConfirm(false)}
+        onConfirm={logout}
+        title="Keluar dari akun?"
+        body="Anda perlu login kembali untuk mengakses Command Center."
+        confirmLabel="Ya, keluar"
+        danger
+      />
     </div>
   );
 }

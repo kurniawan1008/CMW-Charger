@@ -24,7 +24,7 @@ const label = { PENDING: 'Menunggu', APPROVED: 'Disetujui', REJECTED: 'Ditolak' 
 
 export default function Topups() {
   const toast = useToast();
-  const [filter, setFilter] = useState('pending');
+  const [filter, setFilter] = useState('');
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Paged<TopupRow> | null>(null);
   const [rejecting, setRejecting] = useState<TopupRow | null>(null);

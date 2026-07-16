@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
-import { FlaskConical } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { FlaskConical, PlugZap } from 'lucide-react';
 import { api } from '../../lib/api';
-import { rupiah, dateTime } from '../../lib/format';
-import { Badge } from '../../components/ui';
+import { useTopic } from '../../lib/ws';
+import { rupiah, dateTime, duration } from '../../lib/format';
+import { Badge, Card } from '../../components/ui';
+import { Modal } from '../../components/overlay';
+import { CountUp } from '../../components/energy';
 import { PageHeader, Table, Pager } from './shared';
-import type { Paged } from '../../lib/types';
+import type { Paged, SessionTick } from '../../lib/types';
 
 interface LogRow {
   id: string; status: string; end_reason: string | null; billing_type: 'PAYMENT' | 'TRIAL';
@@ -22,14 +26,21 @@ const statusMeta: Record<string, { tone: 'energy' | 'sky' | 'danger' | 'neutral'
 };
 
 export default function Logs() {
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<Paged<LogRow> | null>(null);
   const [stations, setStations] = useState<StationOpt[]>([]);
-  const [f, setF] = useState({ location: '', status: '', billing: '', from: '', to: '' });
+  // Deep-link dari kartu "Sesi Aktif" Overview (?status=active) mengisi filter awal.
+  const [f, setF] = useState({ location: '', status: searchParams.get('status') || '', billing: '', from: '', to: '' });
+  const [live, setLive] = useState<LogRow | null>(null);
+  const [tick, setTick] = useState<SessionTick | null>(null);
 
   useEffect(() => {
     api.get<Paged<StationOpt>>('/admin/locations?limit=100').then((r) => setStations(r.data)).catch(() => {});
   }, []);
+
+  useTopic(live ? `session.${live.id}` : null, (data) => setTick(data as SessionTick));
+  useEffect(() => { setTick(null); }, [live?.id]);
 
   useEffect(() => {
     const params = new URLSearchParams({ page: String(page), limit: '15' });
@@ -77,8 +88,13 @@ export default function Logs() {
         {result?.data.map((s) => {
           const meta = statusMeta[s.status] ?? statusMeta.STOPPED;
           const trial = s.billing_type === 'TRIAL';
+          const isLive = s.status === 'ACTIVE';
           return (
-            <tr key={s.id} className={`transition-colors hover:bg-surface-sunken/50 ${trial ? 'bg-amber-100/20' : ''}`}>
+            <tr
+              key={s.id}
+              onClick={isLive ? () => setLive(s) : undefined}
+              className={`transition-colors hover:bg-surface-sunken/50 ${trial ? 'bg-amber-100/20' : ''} ${isLive ? 'cursor-pointer' : ''}`}
+            >
               <td className="px-4 py-3">
                 <p className="font-mono text-[11.5px] font-bold">{s.id}</p>
                 {trial && (
@@ -106,6 +122,47 @@ export default function Logs() {
         })}
       </Table>
       {result && <Pager page={result.page} totalPages={result.totalPages} onPage={setPage} />}
+
+      {/* Live telemetry — subscribe session.{id} selama modal terbuka (audit revisi #5) */}
+      <Modal open={live !== null} onClose={() => setLive(null)} title="Live Telemetry">
+        {live && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-line p-3.5">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
+                <PlugZap size={18} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-bold">{live.full_name || 'Tanpa user'}</p>
+                <p className="truncate text-[12px] text-ink-400">
+                  {live.station_name || '—'}{live.device_ch ? ` · CH ${live.device_ch}` : ''}
+                  {live.brand ? ` · ${live.brand} ${live.model}` : ''}
+                </p>
+              </div>
+              <Badge tone="sky" pulse className="ml-auto shrink-0">Live</Badge>
+            </div>
+
+            {!tick ? (
+              <p className="py-8 text-center text-[13px] text-ink-400">Menunggu data telemetry…</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ['Energi', <CountUp key="e" value={tick.energy} decimals={3} suffix=" kWh" />],
+                  ['Daya', <CountUp key="p" value={tick.power} decimals={2} suffix=" kW" />],
+                  ['Tegangan', <CountUp key="v" value={tick.voltage} decimals={1} suffix=" V" />],
+                  ['Arus', <CountUp key="c" value={tick.current} decimals={2} suffix=" A" />],
+                  ['Biaya berjalan', <CountUp key="cost" value={tick.cost} prefix="Rp " />],
+                  ['Durasi', duration(tick.elapsed)],
+                ].map(([k, v]) => (
+                  <Card key={k as string} className="!p-3.5">
+                    <p className="text-[10.5px] font-bold uppercase tracking-wide text-ink-400">{k}</p>
+                    <p className="mt-1 font-display text-[16px] font-extrabold tabular">{v}</p>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
