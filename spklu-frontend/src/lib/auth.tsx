@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: { name: string; email: string; phone?: string; password: string }) => {
     const res = await api.post<{ token: string; user: User }>('/auth/register', data);
     tokenStore.set(res.token);
+    clientSocket.reset(); // koneksi WS ikut token baru, konsisten dengan login()
     setUser(res.user);
     return res.user;
   };
