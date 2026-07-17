@@ -75,7 +75,6 @@ export default function AuthPage() {
       type="button"
       onClick={toggle}
       aria-label={label}
-      tabIndex={-1}
       className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-ink-400 transition-colors hover:bg-surface-sunken hover:text-ink-600"
     >
       {shown ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -93,7 +92,7 @@ export default function AuthPage() {
         {/* Brand */}
         <div className="mb-8 text-center">
           <div className="soft-float shine mb-3 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-grad-deep shadow-glow">
-            <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="currentColor">
+            <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="currentColor" aria-hidden="true">
               <polygon points="13,2 4,14 11,14 9,22 20,9 12,9" />
             </svg>
           </div>
@@ -107,11 +106,13 @@ export default function AuthPage() {
 
         <div className="rounded-card bg-white/85 p-7 shadow-raise backdrop-blur-xl">
           {/* Tab login/daftar dengan garis arus sebagai indikator */}
-          <div className="mb-6 grid grid-cols-2 gap-1">
+          <div className="mb-6 grid grid-cols-2 gap-1" role="tablist">
             {(['login', 'register'] as const).map((m) => (
               <button
                 key={m}
                 type="button"
+                role="tab"
+                aria-selected={mode === m}
                 onClick={() => { setMode(m); setError(''); }}
                 className={`cursor-pointer rounded-none bg-transparent pb-2.5 pt-1 text-sm font-bold transition-colors ${mode === m ? 'text-ink-900' : 'text-ink-400 hover:text-ink-600'}`}
               >

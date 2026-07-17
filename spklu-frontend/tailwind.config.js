@@ -61,7 +61,11 @@ export default {
         'glow-energy': '0 0 0 1px rgba(16,185,129,0.15), 0 8px 32px rgba(16,185,129,0.28)',
       },
       backgroundImage: {
-        'grad-energy': 'linear-gradient(135deg,#1D66E0 0%,#38BDF8 55%,#10B981 100%)',
+        // Distop lebih gelap dari versi awal (#1D66E0→#38BDF8→#10B981) — titik
+        // tengah/akhir lama hanya ~2.1-2.5:1 kontras dgn teks putih, gagal AA
+        // 4.5:1 (audit aksesibilitas). Stop baru pakai token sky-700/energy-700
+        // yang sudah ada, terverifikasi 5.0-5.9:1 di sepanjang gradient.
+        'grad-energy': 'linear-gradient(135deg,#1D66E0 0%,#0369A1 55%,#087F58 100%)',
         'grad-deep': 'linear-gradient(135deg,#0A1A32 0%,#1552BC 60%,#0EA5E9 100%)',
       },
     },
