@@ -8,12 +8,16 @@ writing-plans; setiap item punya langkah eksekusi konkret + verifikasi.
 
 | # | Temuan | Severity | Status |
 |---|--------|----------|--------|
-| C1 | Private key SSH (`CMW-Charger.pem`) terekspos ke transkrip chat dan MASIH terdaftar di `authorized_keys` VPS | 🔴 Critical | Fix sekarang |
-| H1 | Situs produksi berjalan HTTP polos (tanpa TLS) — password & JWT lewat jaringan tanpa enkripsi | 🟠 High | Butuh domain (aksi user) |
-| M1 | Backend Node listen di `*:3001` (semua interface) — hanya dilindungi UFW; kalau UFW mati, backend terekspos langsung tanpa CSP/log Nginx | 🟡 Medium | Fix sekarang |
-| L1 | `PermitRootLogin without-password` — login root via key masih diizinkan | 🟢 Low | Fix sekarang (hati-hati) |
-| L2 | fail2ban tidak terpasang — tidak ada throttling brute-force di level SSH (mitigasi: password auth sudah off) | 🟢 Low | Opsional |
-| L3 | `Referrer-Policy: no-referrer-when-downgrade` bisa diperketat; HSTS belum ada (baru relevan setelah TLS) | 🟢 Low | Ikut H1 |
+| C1 | Private key SSH (`CMW-Charger.pem`) terekspos ke transkrip chat dan MASIH terdaftar di `authorized_keys` VPS | 🔴 Critical | ✅ SELESAI (key dirotasi; key lama dicabut & diverifikasi ditolak) |
+| H1 | Situs produksi berjalan HTTP polos (tanpa TLS) — password & JWT lewat jaringan tanpa enkripsi | 🟠 High | ⏳ Butuh domain (aksi user) |
+| M1 | Backend Node listen di `*:3001` (semua interface) — hanya dilindungi UFW; kalau UFW mati, backend terekspos langsung tanpa CSP/log Nginx | 🟡 Medium | ✅ SELESAI (bind 127.0.0.1, deployed & verified) |
+| L1 | `PermitRootLogin without-password` — login root via key masih diizinkan | 🟢 Low | ✅ SELESAI (PermitRootLogin no) |
+| L2 | fail2ban tidak terpasang — tidak ada throttling brute-force di level SSH (mitigasi: password auth sudah off) | 🟢 Low | ✅ SELESAI (terpasang & aktif; sudah ban 1 IP) |
+| L3 | `Referrer-Policy: no-referrer-when-downgrade` bisa diperketat; HSTS belum ada (baru relevan setelah TLS) | 🟢 Low | ⏳ Ikut H1 |
+
+> **Aksi user tersisa (C1 langkah 7):** hapus file
+> `C:\Users\TECH ASIA\Downloads\CMW-Charger.pem` dari laptop — key itu sudah
+> dicabut dari server, tapi file lokalnya masih ada dan tak lagi berguna.
 
 ## Yang SUDAH baik (tidak perlu diubah)
 
