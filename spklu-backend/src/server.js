@@ -37,8 +37,8 @@ async function main() {
     console.error('[spklu-backend] DB tidak bisa dihubungi saat boot:', err.message);
     process.exit(1);
   }
-  server.listen(config.port, () => {
-    console.log(`[spklu-backend] listening :${config.port} — DB ok (${config.db.database})`);
+  server.listen(config.port, config.host, () => {
+    console.log(`[spklu-backend] listening ${config.host}:${config.port} — DB ok (${config.db.database})`);
   });
   startDeviceHeartbeat();
   startClientHeartbeat();

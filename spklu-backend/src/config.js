@@ -15,6 +15,9 @@ if (process.env.NODE_ENV === 'production') {
 
 export const config = {
   port: Number(process.env.PORT || 3001),
+  // Default bind loopback: backend selalu di belakang Nginx — jangan pernah
+  // terekspos langsung ke internet walau firewall berubah (security review H/M1).
+  host: process.env.HOST || '127.0.0.1',
   db: {
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
