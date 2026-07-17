@@ -546,6 +546,23 @@ adminRouter.post('/users/:id/adjust-balance', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Riwayat aksi saldo admin (top-up langsung & rebalancing) dari transaction_logs
+// — pendamping /topups (yang hanya request user). admin_name = siapa yang aksi.
+adminRouter.get('/balance-actions', async (req, res, next) => {
+  try {
+    res.json(await paginate(
+      `SELECT tl.id, tl.amount, tl.type, tl.description, tl.created_at,
+              u.full_name, u.email, a.full_name AS admin_name
+       FROM transaction_logs tl
+       JOIN users u ON u.id = tl.user_id
+       LEFT JOIN users a ON a.id = tl.admin_user_id
+       WHERE tl.type IN ('ADMIN_TOPUP','ADMIN_ADJUST')
+       ORDER BY tl.id DESC`,
+      [], req.query,
+    ));
+  } catch (err) { next(err); }
+});
+
 // ===== Superadmin: kelola akun admin =====
 adminRouter.get('/admins', requireSuperadmin, async (req, res, next) => {
   try {
