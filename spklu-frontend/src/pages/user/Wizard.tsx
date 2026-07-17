@@ -58,12 +58,22 @@ export default function Wizard() {
   useEffect(() => {
     // Pemulihan sesi (audit C2): refresh/back saat charging tidak boleh membuat
     // sesi "hilang dari layar" padahal saldo tereservasi & mesin mengisi.
-    api.get<{ session: { id: string; station_name: string | null; device_ch: number } | null }>('/sessions/active')
+    api.get<{ session: {
+      id: string; station_name: string | null; device_ch: number;
+      start_mode: 'NOMINAL' | 'KWH'; target_kwh: number; target_rp: number;
+    } | null }>('/sessions/active')
       .then((r) => {
         if (r.session) {
-          setSessionId(r.session.id);
-          setSelLocation((cur) => cur ?? ({ name: r.session!.station_name ?? 'Stasiun' } as Location));
-          setSelCharger((cur) => cur ?? ({ id: 0, label: `Charger ${r.session!.device_ch}`, available: false, status: 'CHARGING' }));
+          const s = r.session;
+          setSessionId(s.id);
+          // Tanpa restore mode/amount, progress ring dihitung terhadap default
+          // amount (15000) alih-alih target asli sesi -> persentase salah
+          // walau kWh live tetap benar (bug live telemetry, laporan user).
+          const recoveredMode: Mode = s.start_mode === 'KWH' ? 'kwh' : 'idr';
+          setMode(recoveredMode);
+          setAmount(recoveredMode === 'kwh' ? Number(s.target_kwh) : Number(s.target_rp));
+          setSelLocation((cur) => cur ?? ({ name: s.station_name ?? 'Stasiun' } as Location));
+          setSelCharger((cur) => cur ?? ({ id: 0, label: `Charger ${s.device_ch}`, available: false, status: 'CHARGING' }));
           setStep(6);
         }
       })
